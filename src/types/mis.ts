@@ -2,6 +2,14 @@ export type MatchStatus = 'confirmed' | 'ambiguous' | 'unmatched';
 export type Band = 'Improved' | 'Stable' | 'Declined';
 export type Severity = 'error' | 'warning';
 
+/**
+ * Legacy UI-snapshot types (snake_case, derived from `mis-dashboard.json`).
+ *
+ * @deprecated Prefer `src/types/backend.ts` (canonical OpenAPI DTOs) for any
+ * new backend integration. This file stays for the UI-only fallback pages
+ * until `src/lib/api/*` is migrated to the real paths.
+ */
+
 /** Editable cells may hold a string (what an operator types) or a number. */
 export type CellValue = string | number | boolean | null;
 
@@ -137,21 +145,39 @@ export interface PageParams {
 
 /** Overview page: headline totals + field completeness gauges. */
 export interface OverviewPayload {
-  generated: string;
-  totals: Totals;
-  completeness: CompletenessRow[];
+  students: number;
+  participation: number;
+  schools: number;
 }
+
+
+
+export interface YearlyStat {
+  year: number;
+  uniqueStudents: number;
+  returningStudents: number;
+};
+
+export interface ProgramStat {
+  uniqueStudents: number;
+  totalParticipations: number;
+  returningParticipations: number;
+  since: number | null;
+  id: string;
+  program: string;
+  description: string;
+};
 
 /** Reach page: enrolment split by year joined. */
 export interface ReachPayload {
-  totals: Pick<Totals, 'unique_students' | 'enrolments'>;
-  reach: ReachRow[];
+  yearly: YearlyStat[];
+  programs: ProgramStat[];
 }
 
 export interface ReachParams {
   year_from?: number;
   year_to?: number;
-  programme?: 'ascg' | 'cbc' | 'prog3';
+  programme?: string;
 }
 
 /** ASCG academic page: term means, progress split, bands, subjects. */

@@ -1,16 +1,19 @@
 /**
- * Overview resource. Supplies the headline KPIs + completeness gauges.
+ * Overview resource. Supplies the headline KPIs.
  *
- *   GET /mis/overview -> OverviewPayload
+ *   GET /stats/overview -> OverviewPayload
  */
-import type { OverviewPayload } from '../../types/mis';
+import type { MisData, OverviewPayload } from '../../types/mis';
 import { getOrFallback } from './shared';
 
 export async function fetchOverview(signal?: AbortSignal): Promise<OverviewPayload> {
   return getOrFallback(
     '/stats/overview',
     { signal },
-    (s) => ({ generated: s.generated, totals: s.totals, completeness: s.completeness }),
+    (s: MisData): OverviewPayload => ({
+      students: s.totals.unique_students,
+      participation: s.totals.enrolments,
+      schools: s.totals.schools,
+    }),
   );
 }
-

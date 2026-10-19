@@ -1,4 +1,4 @@
-import type { MisData } from '../types/mis';
+import type { ReachPayload } from '../types/mis';
 import { fmt } from '../lib/format';
 import { Card, Kpi, Notice } from '../components/ui/primitives';
 import {
@@ -11,16 +11,20 @@ import {
 import { BarChart } from '../components/ui/charts';
 import { Table, TableWrap, Td, TdNum, Th, Tr } from '../components/ui/table';
 
-export function Reach({ data }: { data: MisData }) {
-  const T = data.totals;
-  const rows = data.reach.map((r) => ({
-    year: r.year_joined,
-    n: r.new_students,
-    r: r.returning,
-    p: r.participations,
+export function Reach({ data }: { data: ReachPayload }) {
+  const T = data;
+  const programs = T.programs ?? [];
+  const programById = (id: string) => programs.find((p) => p.id === id);
+
+  const rows = (data.yearly ?? []).map((r) => ({
+    year: r.year,
+    n: r.uniqueStudents,
+    r: r.returningStudents,
+    p: r.uniqueStudents + r.returningStudents,
   }));
   const totalNew = rows.reduce((a, b) => a + b.n, 0);
   const totalRet = rows.reduce((a, b) => a + b.r, 0);
+  const totalEnrolled = rows.reduce((a, b) => a + b.p, 0);
   const rows2025 = rows.find((r) => r.year === 2025);
 
   return (
@@ -36,26 +40,28 @@ export function Reach({ data }: { data: MisData }) {
       <Grid4>
         <Kpi
           label="ASCG · unique students"
-          value={fmt(T.unique_students)}
-          sub="Since 2018"
+          value={fmt(programById('ascg')?.uniqueStudents)}
+          sub={programById('ascg')?.since != null ? `Since ${programById('ascg')?.since}` : 'Backend only'}
           accent="blue"
         />
+
         <Kpi
-          label="Total participations"
-          value={fmt(T.enrolments)}
-          sub={`${fmt(totalRet)} are a returning year`}
-          accent="green"
+          label="Outreach · unique students"
+          value={fmt(programById('outreach')?.uniqueStudents)}
+          sub={programById('outreach')?.since != null ? `Since ${programById('outreach')?.since}` : 'Backend only'}
+          accent="blue"
         />
+
         <Kpi
           label="CBC · unique students"
-          value={<span className="text-muted">0</span>}
-          sub="No records supplied"
+          value={fmt(programById('cbc')?.uniqueStudents)}
+          sub={programById('cbc')?.since != null ? `Since ${programById('cbc')?.since}` : 'Backend only'}
           accent="purple"
         />
         <Kpi
-          label="Programme 3 · unique students"
-          value={<span className="text-muted">0</span>}
-          sub="Programme not yet named"
+          label="SC · unique students"
+          value={fmt(programById('sc')?.uniqueStudents)}
+          sub={programById('sc')?.since != null ? `Since ${programById('sc')?.since}` : 'Backend only'}
           accent="purple"
         />
       </Grid4>
@@ -95,7 +101,7 @@ export function Reach({ data }: { data: MisData }) {
               <Td>All years</Td>
               <TdNum>{fmt(totalNew)}</TdNum>
               <TdNum>{fmt(totalRet)}</TdNum>
-              <TdNum>{fmt(T.enrolments)}</TdNum>
+              <TdNum>{fmt(totalEnrolled)}</TdNum>
             </tr>
           </tbody>
         </Table>

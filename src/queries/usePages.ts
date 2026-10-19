@@ -47,8 +47,8 @@ function liveOptions() {
 /**
  * Per-page queries. Each wraps one resource function in `src/lib/api/`; in
  * UI-only mode the payload is derived from the bundled snapshot, with a
- * backend it is the matching HTTP path. Pages keep consuming `useMisData()`
- * until they are migrated one by one — these hooks are the migration target.
+ * backend it is the matching HTTP path. Overview and Reach are migrated;
+ * the remaining pages still use `useMisData()` until they move over one by one.
  */
 export function useOverview() {
   return useQuery<OverviewPayload>({

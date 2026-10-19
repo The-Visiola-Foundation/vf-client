@@ -81,7 +81,7 @@ export async function fetchStudent(uid: string, signal?: AbortSignal): Promise<R
     `/mis/students/${encodeURIComponent(uid)}`,
     { signal },
     (s) => {
-      const row = s.roster.find((r) => r.uid === uid);
+      const row = s.roster.find((r: RosterRow) => r.uid === uid);
       if (!row) throw new Error(`Student ${uid} not found in the loaded snapshot`);
       return row;
     },

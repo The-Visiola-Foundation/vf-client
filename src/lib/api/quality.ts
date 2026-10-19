@@ -36,7 +36,7 @@ export async function fetchQualityIssues(
     { signal },
     (s) => {
       const rows = s.issues.filter(
-        (i) =>
+        (i: IssueRow) =>
           (!severity || i.severity === severity) && (!field || i.field === field),
       );
       const start = (page - 1) * page_size;
