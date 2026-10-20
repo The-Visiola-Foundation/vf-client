@@ -43,7 +43,7 @@ export const PAGES: PageDef[] = [
   { id: 'reach', label: 'Reach and enrolment', group: 'Programmes' },
   { id: 'ascg', label: 'ASCG academic', group: 'Programmes' },
   { id: 'cbc', label: 'Coding Boot Camp', group: 'Programmes' },
-  { id: 'sc', label: 'STEM Camp', group: 'Programmes' },
+  { id: 'sc', label: 'STEM Camps', group: 'Programmes' },
   { id: 'register', label: 'Student register', group: 'Records' },
   { id: 'quality', label: 'Data quality', group: 'Records' },
   { id: 'board', label: 'Board summary', group: 'Governance' },

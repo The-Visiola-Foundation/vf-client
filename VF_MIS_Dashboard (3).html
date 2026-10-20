@@ -197,8 +197,8 @@ document.getElementById('logo').src = DATA.logo;
 /* ── Access model. Mirrors the SQL grants; the database is what enforces
       it for real, this only decides what the interface offers. ─────── */
 const ACCESS = {
-  admin: ['overview','reach','ascg','cbc','prog3','register','quality','board','proposed'],
-  staff: ['overview','reach','ascg','cbc','prog3','quality','proposed'],
+  admin: ['overview','reach','ascg','cbc','ssc','register','quality','board','proposed'],
+  staff: ['overview','reach','ascg','cbc','ssc','quality','proposed'],
   board: ['board']
 };
 const PAGES = [
@@ -206,7 +206,7 @@ const PAGES = [
   {id:'reach',    label:'Reach and enrolment', group:'Programmes'},
   {id:'ascg',     label:'ASCG academic',       group:'Programmes'},
   {id:'cbc',      label:'Coding Boot Camp',    group:'Programmes'},
-  {id:'prog3',    label:'Programme 3',         group:'Programmes'},
+  {id:'ssc',      label:'STEM Camps',           group:'Programmes'},
   {id:'register', label:'Student register',    group:'Records'},
   {id:'quality',  label:'Data quality',        group:'Records'},
   {id:'board',    label:'Board summary',       group:'Governance'},
@@ -369,7 +369,7 @@ function pageReach(){
     ${kpi('Total participations', `<span class="num">${fmt(T.enrolments)}</span>`,
       `${fmt(totalRet)} are a returning year`, 'green')}
     ${kpi('CBC · unique students', `<span class="num" style="color:var(--muted)">0</span>`, 'No records supplied', 'purple')}
-    ${kpi('Programme 3 · unique students', `<span class="num" style="color:var(--muted)">0</span>`, 'Programme not yet named', 'purple')}
+    ${kpi('STEM Camps · participants', `<span class="num">97</span>`, '2026: Summer loaded, December pending', 'purple')}
   </div>
 
   <h2 class="sec">First-time and returning students by year</h2>
@@ -535,17 +535,214 @@ function pageCbc(){
   </div>`;
 }
 
-function pageProg3(){
-  return `<p class="eyebrow">Programmes</p>
-  <h1 class="page">Programme 3</h1>
-  <p class="lede">A third programme is referred to in the brief but is not named or
-  described in any document supplied, and no records exist for it.</p>
-  <div class="empty">
-    <strong>Programme not yet identified</strong>
-    Tell us what this programme is and what a successful outcome looks like for it, and
-    this page will be built to match. The table <span class="num">prog3_record</span>
-    is in place as a placeholder so nothing has to be restructured later.
-  </div>`;
+function sscSummer(){
+  const core = '<span class="pill ok">Core</span>', spec = '<span class="pill amb">Camp-specific</span>';
+  const bar = (v, max, c) => `<div style="height:10px;background:var(--paper);border:1px solid var(--line);border-radius:5px;overflow:hidden"><div style="width:${(v/max*100).toFixed(1)}%;height:100%;background:${c||'var(--vf-blue)'}"></div></div>`;
+  const sig = s => s ? '<span class="pill up">p &lt; 0.05</span>' : '<span class="pill flat">Not significant</span>';
+  const eff = [
+    {n:'Gender belief in STEM', t:core, b:4.00, e:4.60, d:.60, s:1},
+    {n:'Presentation confidence', t:core, d:.45, s:1},
+    {n:'Teamwork on technical projects', t:core, d:.44, s:1},
+    {n:'Engineering self-identity', t:core, d:.34, s:1},
+    {n:'Electronics troubleshooting', t:spec, d:.31, s:1},
+    {n:'Problem solving', t:core, s:0}
+  ];
+  const projects = [
+    ['1','PowerLink','Community mini-grid, smart meters, energy credits'],
+    ['2','Smart Hybrid Wind and Water Turbine','Wind, hydro, servo-oriented turbine'],
+    ['3','Rain-Powered Solar Backup','Solar with rainwater hydropower backup'],
+    ['4','Solar-Powered Smart Hospital Carport','Solar, PIR lighting'],
+    ['5','Solar Wise System','Solar, dimming school streetlights'],
+    ['6','Smart Solar Panel Cleaner','Arduino MEGA, servo wiper'],
+    ['7','Kinetic Harvest','Door-driven generator'],
+    ['8','SmartFarm','Solar, wind, RFID gate, soil-moisture irrigation'],
+    ['9','Solar Smart Water Pump','Solar, smart water management'],
+    ['10','Sun Link Community','Solar, automation, food preservation, security']
+  ];
+  const exp = [['Food',14248350],['Ultrashot (video, Zoom live, photography)',3870000],['Venue',3022000],
+    ['Printing (T-shirts, certificates, VF bags)',1975000],['Shopping',1373442.5],['Drinking water',644000],
+    ['Camp transport',528900],['Prizes for students',384000],['Soft drinks',181500],['Dance',150000],
+    ['Medical supplies',131850],['Self defense',120000],['Training food',104790],['SSC data bundle',60000],
+    ['Training water',30000],['Airtime',5000]];
+  const total = 26828832.5, naira = n => '₦' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const row = (a,b) => `<tr><td><b>${a}</b></td><td class="n">${b}</td></tr>`;
+
+  return `<p class="eyebrow">Programmes · STEM Camps</p>
+  <h1 class="page">Summer STEM Camp 2026 impact</h1>
+  <p class="lede">Measured change in girls' STEM confidence, practical skills and knowledge,
+  with what they thought of the camp. Fields marked <b>Core</b> are collected at every camp so editions can be
+  compared; <b>Camp-specific</b> fields follow each year's theme.</p>
+
+
+  <div class="grid g4">
+    ${kpi('Girls who took part', `<span class="num">97</span>`, '8 days · 10 teams', 'blue')}
+    ${kpi('Improved practical skills', `<span class="num">65%</span>`, 'Facilitator observed, n=94', 'green')}
+    ${kpi('Rated camp 4 or 5 of 5', `<span class="num">94%</span>`, 'n=96 · 100% would recommend', 'purple')}
+    ${kpi('Cost per participant', `<span class="num">${naira(total/97).replace(/\.\d+$/,'')}</span>`, `${naira(total)} in total`, 'red')}
+  </div>
+
+  <h2 class="sec">Who took part</h2>
+  <div class="grid g2">
+    <div class="card"><b style="font-size:13.5px">Class</b>${stackBar([
+      {label:'SS 1',v:58,c:'#00A3DA'},{label:'SS 2',v:36,c:'#9EC83E'},{label:'SS 3',v:2,c:'#958EB8'},{label:'JSS 3',v:1,c:'#E0A93B'}],97)}</div>
+    <div class="card"><b style="font-size:13.5px">Academic track</b>${stackBar([
+      {label:'Science',v:86,c:'#00A3DA'},{label:'Arts',v:7,c:'#9EC83E'},{label:'Commercial',v:3,c:'#958EB8'},{label:'Technology',v:1,c:'#E0A93B'}],97)}</div>
+  </div>
+  <p class="lede" style="margin-top:10px">Ages ran from 12 to 18; ages 14 (30) and 15 (31) made up 63% of the cohort.</p>
+
+  <h2 class="sec">STEM self-efficacy, baseline to endline</h2>
+  <p class="lede">Matched pairs, n=77, paired two-tailed t-test. Hatched cells were not in the report.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Measure</th><th>Type</th><th>Baseline</th><th>Endline</th><th>Change</th><th>Significance</th><th>Improved / declined</th></tr></thead>
+    <tbody>${eff.map(m => `<tr><td><b>${m.n}</b></td><td>${m.t}</td>
+      <td class="n">${cell(m.b!=null?m.b.toFixed(2):null)}</td><td class="n">${cell(m.e!=null?m.e.toFixed(2):null)}</td>
+      <td class="n">${m.d!=null?'+'+m.d.toFixed(2):'Slight rise'}</td><td>${sig(m.s)}</td>
+      <td class="n">${blank()}</td></tr>`).join('')}</tbody></table></div>
+  <div class="card" style="margin-top:14px"><b style="font-size:13.5px">Size of change (mean rating points)</b>
+    ${eff.filter(m=>m.d).map(m=>`<div style="display:grid;grid-template-columns:210px 1fr 48px;gap:10px;align-items:center;margin-top:9px;font-size:13px">
+      <span>${m.n}</span>${bar(m.d,.6)}<span class="num">+${m.d.toFixed(2)}</span></div>`).join('')}</div>
+  <div class="notice info" style="margin-top:14px"><h3>Why problem solving barely moved</h3>
+    <p>It had the highest starting score, so there was little room to rise. The same applies to STEM career
+    interest, which went from 3.90 to 4.12 without reaching significance.</p></div>
+
+  <h2 class="sec">Areas of interest</h2>
+  <div class="card">${[['Renewable energy',0,12]].map(a=>`<div style="display:flex;justify-content:space-between;font-size:13.5px"><b>${a[0]}</b>
+    <span class="num">${a[1]}% → ${a[2]}% of girls</span></div>${bar(a[2],100,'var(--vf-green)')}`).join('')}
+    <div class="gaugelabel"><span>Named at baseline: none</span><span>${spec}</span></div></div>
+
+  <h2 class="sec">Knowledge test, before and after</h2>
+  <div class="grid g4">
+    ${kpi('Average, pre-test', `<span class="num">88.2</span>`, 'n=87 sat both tests')}
+    ${kpi('Average, post-test', `<span class="num">88.8</span>`, 'Harder paper than the pre-test','blue')}
+    ${kpi('Scored 100 before camp', `<span class="num">33</span>`, '38% had no room to improve','red')}
+    ${kpi('Largest individual gain', `<span class="num">+38</span>`, '60 → 98 points','green')}
+  </div>
+  <div class="notice warn" style="margin-top:14px"><h3>Read this score with care</h3>
+    <p>The post-test was more advanced than the pre-test, so a flat average does not mean no learning. Set both papers to
+    comparable difficulty next time.</p></div>
+
+  <h2 class="sec">Practical skills and teamwork, facilitator observed</h2>
+  <p class="lede">Day 2 compared with Day 5, n=94.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Measure</th><th>Type</th><th>Day 2</th><th>Day 5</th><th>Change</th></tr></thead><tbody>
+    <tr><td><b>Individual practical skills (of 4)</b></td><td>${core}</td><td class="n">2.54</td><td class="n">2.85</td><td class="n">+0.31</td></tr>
+    <tr><td><b>Teamwork and communication (of 5)</b></td><td>${core}</td><td class="n">3.06</td><td class="n">3.50</td><td class="n">+0.44</td></tr>
+    <tr><td>Circuit building</td><td>${spec}</td><td class="n">${blank()}</td><td class="n">${blank()}</td><td class="n">+0.60</td></tr>
+    <tr><td>Troubleshooting</td><td>${spec}</td><td class="n">${blank()}</td><td class="n">${blank()}</td><td class="n">+0.45</td></tr>
+    <tr><td>Sensor logic and Arduino basics</td><td>${spec}</td><td class="n" colspan="3" style="text-align:left;color:var(--muted)">First observed on Day 5</td></tr>
+  </tbody></table></div>
+  <p class="lede" style="margin-top:10px">Teams differed noticeably in how much their collaboration improved. Earlier facilitator
+  check-ins would catch struggling teams before Day 5.</p>
+
+  <h2 class="sec">What the girls said</h2>
+  <div class="grid g2">
+    <div class="card"><b style="font-size:13.5px">Experience and confidence</b>
+      ${[['Increased my confidence in STEM',92],['Facilitators encouraged participation',93],['Concepts explained clearly',92],
+         ['Comfortable sharing ideas with my team',89],['My team worked well together',85]].map(r=>
+        `<div style="display:grid;grid-template-columns:1fr 44px;gap:10px;align-items:center;margin-top:10px;font-size:13px">
+         <div>${r[0]}${bar(r[1],100)}</div><span class="num">${r[1]}%</span></div>`).join('')}</div>
+    <div class="card"><b style="font-size:13.5px">What to improve, most asked first</b>
+      <ol style="margin:10px 0 0;padding-left:20px;font-size:13px;line-height:1.7">
+        <li>More rest and sleep</li><li>Better and more varied meals</li><li>Hostel, toilet and water facilities</li>
+        <li>More kits, tools and laptops</li><li>More time for projects and presentations</li>
+        <li>Support for quieter girls to contribute</li><li>Clearer logistics before arrival</li></ol>
+      <p class="sub" style="font-size:12px;color:var(--muted);margin:10px 0 0">Favourite activity: renewable energy, then the team
+      challenge, then the excursion. 7 of 96 responses contradicted themselves and are flagged.</p></div>
+  </div>
+
+  <h2 class="sec">Student innovation projects</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Team</th><th>Project</th><th>Built with</th><th>Result</th></tr></thead>
+    <tbody>${projects.map(p=>`<tr><td class="num">${p[0]}</td><td><b>${p[1]}</b></td>
+      <td style="white-space:normal">${p[2]}</td><td>${p[0]==='8'?'<span class="pill ok">Winner</span>':blank()}</td></tr>`).join('')}</tbody></table></div>
+  <div class="grid g4" style="margin-top:14px">
+    ${kpi('Overall best student','Precious, 16','Vote of thanks','green')}
+    ${kpi('Most inquisitive','Crown, 13','','blue')}
+    ${kpi('Most improved','Aisha, 16','','purple')}
+  </div>
+
+  <h2 class="sec">Industry and partners</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Partner</th><th>Engagement</th><th>Day</th></tr></thead><tbody>
+    <tr><td><b>Blue Camel Energy Limited</b></td><td>EV charging station excursion; career talks</td><td class="n">4; 3 and 5</td></tr>
+    <tr><td><b>Secondary Education Board</b></td><td>Chat session with participants</td><td class="n">3</td></tr>
+    <tr><td><b>NASENI Innovation Hub</b></td><td>Goodwill remarks</td><td class="n">8</td></tr>
+    <tr><td><b>FGN Power Company</b></td><td>Chief judge, presented awards</td><td class="n">8</td></tr>
+  </tbody></table></div>
+
+  <h2 class="sec">Where the money went</h2>
+  <div class="card">
+    ${exp.slice(0,6).map(e=>`<div style="display:grid;grid-template-columns:260px 1fr 128px;gap:10px;align-items:center;margin-top:9px;font-size:13px">
+      <span>${e[0]}</span>${bar(e[1],exp[0][1],'var(--vf-purple)')}<span class="num" style="text-align:right">${naira(e[1])}</span></div>`).join('')}
+    <div class="gaugelabel"><span>Food alone was ${(exp[0][1]/total*100).toFixed(0)}% of spend</span><span>Top 6 of ${exp.length} lines</span></div>
+  </div>
+  <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Expense</th><th>Amount</th></tr></thead>
+    <tbody>${exp.map(e=>row(e[0],naira(e[1]))).join('')}
+    <tr style="font-weight:700;background:var(--paper)"><td>Grand total</td><td class="n">${naira(total)}</td></tr></tbody></table></div>
+
+  <h2 class="sec">Lessons for the next camp</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Area</th><th>What we found</th><th>What to do</th></tr></thead><tbody>
+    ${[['Test design','Pre-test was easy; 38% scored 100','Match difficulty and widen the spread of questions'],
+       ['Survey design','7 contradictory feedback answers','Label scale ends clearly; pilot the survey first'],
+       ['Kits and project time','Girls asked for more kits, laptops and time','Buy more shared kits; add project and rehearsal time'],
+       ['Team support','Collaboration gains varied by team','Check in with teams before Day 5'],
+       ['Welfare and logistics','Rest, meals and hostel facilities most raised','Protect rest time; audit meals and facilities; send a pre-camp guide']]
+      .map(r=>`<tr><td><b>${r[0]}</b></td><td style="white-space:normal">${r[1]}</td><td style="white-space:normal">${r[2]}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+let sscYear = '2026', sscCamp = 'summer';
+function sscControls(){
+  const core = '<span class="pill ok">Core</span>', spec = '<span class="pill amb">Camp-specific</span>';
+  return `<div class="controls">
+    <select id="sscyear" aria-label="Year"><option value="2026">2026</option></select>
+    <select id="ssccamp" aria-label="Camp">
+      <option value="summer" ${sscCamp==='summer'?'selected':''}>Summer STEM Camp</option>
+      <option value="december" ${sscCamp==='december'?'selected':''}>December STEM Camp</option>
+      <option value="both" ${sscCamp==='both'?'selected':''}>Both camps</option></select>
+    <span class="legend" style="margin:0">${core} same every camp ${spec} set per camp</span></div>`;
+}
+function pageSsc(){
+  if (sscCamp === 'summer')
+    return sscSummer().replace('<div class="grid g4">', sscControls() + '<div class="grid g4">');
+  if (sscCamp === 'december')
+    return `<p class="eyebrow">Programmes · STEM Camps</p>
+    <h1 class="page">December STEM Camp ${sscYear} impact</h1>
+    <p class="lede">Each camp keeps its own theme, so camp-specific measures are set up fresh for December.
+    The core measures are identical to Summer, which is what makes the two comparable.</p>
+    ${sscControls()}
+    <div class="empty"><strong>No December STEM Camp ${sscYear} results loaded</strong>
+      Load the baseline and endline survey, knowledge test, facilitator observations and feedback for this camp
+      and this page will fill in. Nothing is shown as zero until data exists.</div>`;
+  const rows = [
+    ['Gender belief in STEM','+0.60'],['Presentation confidence','+0.45'],['Teamwork on technical projects','+0.44'],
+    ['Engineering self-identity','+0.34'],['Problem solving','Not significant'],
+    ['Improved practical skills','65%'],['Rated the camp 4 or 5 of 5','94%']];
+  return `<p class="eyebrow">Programmes · STEM Camps</p>
+    <h1 class="page">STEM Camps ${sscYear}: year overview</h1>
+    <p class="lede">Both camps together. Girls are counted once however many camps they attend, and every
+    average is recomputed from the combined records rather than averaged across camps.</p>
+    ${sscControls()}
+    <div class="notice warn"><h3>Year totals cover Summer only so far</h3>
+      <p>December STEM Camp ${sscYear} has no results loaded, so nothing below includes it.</p></div>
+    <div class="grid g4">
+      ${kpi('Camps with results', '<span class="num">1 of 2</span>', 'Summer loaded', 'blue')}
+      ${kpi('Girls reached', '<span class="num">97</span>', 'Unique across loaded camps', 'green')}
+      ${kpi('Participations', '<span class="num">97</span>', 'Sum of all camps', 'purple')}
+      ${kpi('Spend', '<span class="num">₦26.8M</span>', 'Summer only', 'red')}
+    </div>
+    <h2 class="sec">Core measures, camp by camp</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Measure (change, baseline to endline)</th><th>Summer</th><th>December</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td><b>${r[0]}</b></td><td class="n">${r[1]}</td><td class="n">${blank()}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="lede" style="margin-top:10px">Compare Summer with Summer and December with December across years. Summer against December
+    is fair on core measures only, because themes and durations can differ.</p>`;
+}
+function wireSsc(){
+  document.getElementById('sscyear').onchange = e => { sscYear = e.target.value; render(); };
+  document.getElementById('ssccamp').onchange = e => { sscCamp = e.target.value; render(); };
 }
 
 /* ── Editable student register ─────────────────────────────────────── */
@@ -798,7 +995,7 @@ function pageProposed(){
 }
 
 const RENDER = {overview:pageOverview, reach:pageReach, ascg:pageAscg, cbc:pageCbc,
-  prog3:pageProg3, register:pageRegister, quality:pageQuality, board:pageBoard,
+  ssc:pageSsc, register:pageRegister, quality:pageQuality, board:pageBoard,
   proposed:pageProposed};
 
 /* ── Wiring ────────────────────────────────────────────────────────── */
@@ -829,6 +1026,7 @@ function render(){
   m.scrollTop = 0;
   window.scrollTo(0, 0);
   if (page === 'register') wireRegister();
+  if (page === 'ssc') wireSsc();
 }
 
 function wireRegister(){

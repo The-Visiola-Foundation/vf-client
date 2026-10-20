@@ -41,5 +41,13 @@ export const queryKeys = {
     ['mis', 'finance', 'spend', params ?? {}] as const,
   /** Metrics-to-add proposals (static today). */
   metricProposals: ['mis', 'metrics-proposals'] as const,
+  /** All SSC camps with a `hasResults` flag. */
+  sscCamps: ['ssc', 'camps'] as const,
+  /** One camp's full impact payload (`null` when no results). */
+  sscImpact: (campId: string) => ['ssc', 'camps', campId, 'impact'] as const,
+  /** Year-level rollup across camps (`null` when nothing loaded). */
+  sscYearRollup: (year: number) => ['ssc', 'years', year, 'rollup'] as const,
+  /** Core-measure comparison rows for a given core code. */
+  sscCompare: (core: string) => ['ssc', 'compare', core] as const,
 };
 

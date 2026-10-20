@@ -19,6 +19,7 @@ import type {
   ReachPayload,
   IssueRow,
 } from '../types/mis';
+import type { SscCompareResponse, SscCampsResponse, SscImpactPayload, SscYearRollup } from '../types/ssc';
 import { isBackendConfigured } from '../lib/api';
 import {
   fetchAscgAcademic,
@@ -32,6 +33,10 @@ import {
   fetchQualityIssues,
   fetchQualitySummary,
   fetchReach,
+  fetchSscCamps,
+  fetchSscCompare,
+  fetchSscImpact,
+  fetchSscYearRollup,
 } from '../lib/api';
 import { queryKeys } from './keys';
 
@@ -136,6 +141,45 @@ export function useMetricProposals() {
   return useQuery<MetricProposal[]>({
     queryKey: queryKeys.metricProposals,
     queryFn: ({ signal }) => fetchMetricProposals(signal),
+    ...liveOptions(),
+  });
+}
+
+/** All SSC camps, each carrying a `hasResults` flag. */
+export function useSscCamps() {
+  return useQuery<SscCampsResponse>({
+    queryKey: queryKeys.sscCamps,
+    queryFn: ({ signal }) => fetchSscCamps(signal),
+    ...liveOptions(),
+  });
+}
+
+/** One camp's full impact payload (`null` when no results). */
+export function useSscImpact(campId: string) {
+  return useQuery<SscImpactPayload | null>({
+    queryKey: queryKeys.sscImpact(campId),
+    queryFn: ({ signal }) => fetchSscImpact(campId, signal),
+    enabled: !!campId,
+    ...liveOptions(),
+  });
+}
+
+/** Year-level rollup across camps (`null` when nothing loaded). */
+export function useSscYearRollup(year: number) {
+  return useQuery<SscYearRollup | null>({
+    queryKey: queryKeys.sscYearRollup(year),
+    queryFn: ({ signal }) => fetchSscYearRollup(year, signal),
+    enabled: year > 0,
+    ...liveOptions(),
+  });
+}
+
+/** Core-measure comparison rows for a given core code. */
+export function useSscCompare(core: string) {
+  return useQuery<SscCompareResponse>({
+    queryKey: queryKeys.sscCompare(core),
+    queryFn: ({ signal }) => fetchSscCompare(core, signal),
+    enabled: !!core,
     ...liveOptions(),
   });
 }

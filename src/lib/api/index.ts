@@ -9,4 +9,5 @@ export * from './cbc';
 export * from './register';
 export * from './quality';
 export * from './board';
+export * from './ssc';
 

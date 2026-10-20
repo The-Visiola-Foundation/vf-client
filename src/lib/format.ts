@@ -32,3 +32,13 @@ export function cellText(v: unknown): string {
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
   return String(v);
 }
+
+/** Currency amount: `₦` + thousands separator, 2 decimals, or em dash. */
+export function fmtCurrency(
+  amount: number | null | undefined,
+  currency: string | null | undefined = null,
+): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
+  const sym = currency === 'NGN' ? '₦' : currency ?? '₦';
+  return `${sym}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}

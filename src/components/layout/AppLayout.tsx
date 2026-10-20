@@ -13,7 +13,7 @@ import { Overview } from '../../pages/Overview';
 import { Reach } from '../../pages/Reach';
 import { Ascg } from '../../pages/Ascg';
 import { Cbc } from '../../pages/Cbc';
-import { SC } from '../../pages/Prog3';
+import { SC } from '../../pages/Sc';
 import { Register } from '../../pages/Register';
 import { Quality } from '../../pages/Quality';
 import { Board } from '../../pages/Board';
