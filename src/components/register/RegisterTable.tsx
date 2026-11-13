@@ -1,21 +1,25 @@
+import { useNavigate } from 'react-router-dom';
 import type { RosterRow } from '../../types/mis';
-import { COLS } from '../../lib/registerColumns';
 import { ageOf } from '../../lib/format';
-import { Cell, Pill, type PillVariant } from '../ui/primitives';
+import { Cell } from '../ui/primitives';
 import { Table, TableWrap, Td, TdNum, Th, Tr } from '../ui/table';
 import { EditableCell } from './EditableCell';
 
-const MATCH_PILL: Record<string, PillVariant> = {
-  confirmed: 'ok',
-  ambiguous: 'amb',
-  unmatched: 'no',
-};
-
-const BAND_PILL: Record<string, PillVariant> = {
-  Improved: 'up',
-  Declined: 'down',
-  Stable: 'flat',
-};
+const DISPLAY_COLS: Array<{
+  k: keyof RosterRow | 'age';
+  t: string;
+  ro?: boolean;
+  derived?: boolean;
+  w?: string;
+}> = [
+  { k: 'first', t: 'First name' },
+  { k: 'last', t: 'Last name' },
+  { k: 'dob', t: 'Date of birth' },
+  { k: 'age', t: 'Age', ro: true, derived: true },
+  { k: 'email', t: 'E-mail' },
+  { k: 'phone', t: 'Cell' },
+  { k: 'school', t: 'School' },
+];
 
 export function RegisterTable({
   rows,
@@ -26,7 +30,7 @@ export function RegisterTable({
   dirty: Set<string>;
   onCommit: (uid: string, field: string, value: string | null) => void;
 }) {
-  const shown = rows.slice(0, 400);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -34,37 +38,25 @@ export function RegisterTable({
         <Table>
           <thead>
             <tr>
-              {COLS.map((c) => (
+              {DISPLAY_COLS.map((c) => (
                 <Th key={c.k} style={c.w ? { minWidth: c.w } : undefined}>
                   {c.t}
                   {c.ro ? ' 🔒' : ''}
                 </Th>
               ))}
+              <Th>Action</Th>
             </tr>
           </thead>
           <tbody>
-            {shown.map((r) => (
+            {rows.map((r) => (
               <Tr key={r.uid}>
-                {COLS.map((c) => {
+                {DISPLAY_COLS.map((c) => {
                   if (c.derived) {
+                    const row = r as RosterRow & { age?: number | null };
                     return (
                       <TdNum key={c.k}>
-                        <Cell value={ageOf(r.dob)} />
+                        <Cell value={row.age ?? ageOf(row.dob)} />
                       </TdNum>
-                    );
-                  }
-                  if (c.k === 'match') {
-                    return (
-                      <Td key={c.k}>
-                        <Pill variant={MATCH_PILL[r.match] ?? 'flat'}>{r.match}</Pill>
-                      </Td>
-                    );
-                  }
-                  if (c.k === 'band' && r.band) {
-                    return (
-                      <Td key={c.k}>
-                        <Pill variant={BAND_PILL[r.band] ?? 'flat'}>{r.band}</Pill>
-                      </Td>
                     );
                   }
                   if (c.ro) {
@@ -83,16 +75,20 @@ export function RegisterTable({
                     />
                   );
                 })}
+                <Td>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/students/${encodeURIComponent(r.uid)}`)}
+                    className="rounded-[7px] border border-line-2 bg-card px-3 py-1.5 text-[12px] font-semibold text-ink transition hover:border-vf-blue hover:text-vf-blue"
+                  >
+                    View student details
+                  </button>
+                </Td>
               </Tr>
             ))}
           </tbody>
         </Table>
       </TableWrap>
-      {rows.length > 400 ? (
-        <p className="mt-2.5 text-[12.5px] text-muted">
-          Showing the first 400 matching rows. Narrow the filters to reach the rest.
-        </p>
-      ) : null}
     </>
   );
 }

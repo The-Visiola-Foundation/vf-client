@@ -27,6 +27,8 @@ export const queryKeys = {
   /** One paginated register page for a filter set. */
   registerPage: (filters?: Record<string, string | number | boolean | undefined>) =>
     ['mis', 'students', filters ?? {}] as const,
+  /** One student record by UID. */
+  student: (id: string) => ['mis', 'student', id] as const,
   /** The set of `uid|field` pairs edited this session. */
   registerEdits: ['register-edits'] as const,
   /** Data-quality summary aggregates. */

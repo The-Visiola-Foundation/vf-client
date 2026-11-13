@@ -26,12 +26,23 @@ export async function fetchReach(
                 (year_from === undefined || r.year_joined >= year_from) &&
                 (year_to === undefined || r.year_joined <= year_to),
             );
-      const yearly: YearlyStat[] = rows.map((r: ReachRow) => ({
+      const yearlyStats: YearlyStat[] = rows.map((r: ReachRow) => ({
         year: r.year_joined,
-        uniqueStudents: r.new_students,
+        newStudents: r.new_students,
         returningStudents: r.returning,
+        unclassifiedStudents: 0,
       }));
-      return { yearly, programs: [] };
+      return {
+        yearly: {
+          yearlyStats,
+          totals: {
+            uniqueStudents: rows.reduce((sum, r) => sum + r.unique_students, 0),
+            returningStudents: rows.reduce((sum, r) => sum + r.returning, 0),
+            totalParticipations: rows.reduce((sum, r) => sum + r.participations, 0),
+          },
+        },
+        programs: [],
+      };
     },
   );
 }

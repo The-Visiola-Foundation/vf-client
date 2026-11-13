@@ -12,9 +12,15 @@
  *   POST /auth/logout                       -> 204 (best-effort on sign-out)
  */
 import type { AuthUser, LoginInput } from '../../types/auth';
-import { isRole, roleLabel, type Role } from '../access';
+import { roleLabel, type Role } from '../access';
 import { isBackendConfigured } from './config';
-import { ApiError, apiRequest, setAuthToken } from './client';
+import {
+  ApiError,
+  apiRequest,
+  clearAuthTokens,
+  getAuthToken,
+  setAuthTokens,
+} from './client';
 
 const SESSION_KEY = 'vf-mis.session';
 
@@ -38,16 +44,33 @@ export function demoEmailFor(role: Role): string {
   return DEMO_USERS[role].email;
 }
 
+export function normalizeRole(value: unknown): Role {
+  const raw = String(value ?? '').trim().toLowerCase();
+
+  if (raw === 'admin' || raw === 'key_staff' || raw.includes('key') && raw.includes('staff')) {
+    return 'admin';
+  }
+  if (raw === 'staff' || raw === 'programme_staff' || raw.includes('programme') || raw.includes('staff')) {
+    return 'staff';
+  }
+  if (raw === 'board' || raw.includes('board')) {
+    return 'board';
+  }
+
+  return 'staff';
+}
+
 function readStoredSession(): AuthUser | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AuthUser>;
-    if (typeof parsed.email === 'string' && isRole(parsed.role)) {
+    if (typeof parsed.email === 'string') {
+      const role = normalizeRole(parsed.role);
       return {
         email: parsed.email,
         name: typeof parsed.name === 'string' ? parsed.name : parsed.email,
-        role: parsed.role,
+        role,
       };
     }
     return null;
@@ -66,8 +89,10 @@ function writeStoredSession(user: AuthUser | null) {
 }
 
 interface LoginResponse {
-  token: string;
-  user: AuthUser;
+  accessToken?: string;
+  refreshToken?: string;
+  token?: string;
+  user?: { email?: string; name?: string; role?: string };
 }
 
 /**
@@ -85,6 +110,7 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
     await delay(600); // keep the loading state honest in demos
     if (demoRole) {
       const user: AuthUser = { ...demoUserFor(demoRole), email };
+      setAuthTokens('demo-token', 'demo-refresh-token');
       writeStoredSession(user);
       return user;
     }
@@ -98,6 +124,7 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
       );
     }
     const user: AuthUser = { ...demoUserFor(match), email };
+    setAuthTokens('demo-token', 'demo-refresh-token');
     writeStoredSession(user);
     return user;
   }
@@ -106,12 +133,32 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
     method: 'POST',
     body: JSON.stringify({ email, password: input.password }),
   });
-  if (!isRole(res.user?.role)) {
-    throw new ApiError('The server returned an unknown role.', 500);
+
+  const token =
+    typeof res.accessToken === 'string'
+      ? res.accessToken
+      : typeof res.token === 'string'
+        ? res.token
+        : null;
+
+  const refreshToken = typeof res.refreshToken === 'string' ? res.refreshToken : null;
+
+  if (!token) {
+    throw new ApiError('The server did not return an authentication token.', 401);
   }
-  setAuthToken(res.token);
-  writeStoredSession(res.user);
-  return res.user;
+
+  const backendUser = res.user ?? { email, name: email, role: 'staff' };
+  const resolvedRole: Role = normalizeRole(backendUser.role ?? demoRole ?? 'staff');
+
+  const user: AuthUser = {
+    email: backendUser.email ?? email,
+    name: backendUser.name ?? email,
+    role: resolvedRole,
+  };
+
+  setAuthTokens(token, refreshToken);
+  writeStoredSession(user);
+  return user;
 }
 
 /**
@@ -120,14 +167,35 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
  */
 export async function restoreSession(): Promise<AuthUser | null> {
   const stored = readStoredSession();
-  if (!isBackendConfigured) return stored;
-  if (!stored) return null;
+  if (!isBackendConfigured) {
+    if (!stored) {
+      const token = getAuthToken();
+      if (token) clearAuthTokens();
+      return null;
+    }
+    return stored;
+  }
+
+  const token = getAuthToken();
+  if (!stored || !token) {
+    clearAuthTokens();
+    writeStoredSession(null);
+    return null;
+  }
+
   try {
-    const me = await apiRequest<AuthUser>('/auth/me');
-    if (!isRole(me?.role)) return null;
-    writeStoredSession(me);
-    return me;
+    const me = await apiRequest<{ email?: string; name?: string; role?: string }>('/auth/me');
+    const normalized = {
+      email: me?.email ?? stored.email,
+      name: me?.name ?? stored.name,
+      role: normalizeRole(me?.role ?? stored.role),
+    };
+    if (!normalized.email) return null;
+    writeStoredSession(normalized);
+    return normalized;
   } catch {
+    clearAuthTokens();
+    writeStoredSession(null);
     return null;
   }
 }
@@ -141,7 +209,7 @@ export async function logout(): Promise<void> {
       /* signing out locally is what matters — a dead token is harmless */
     }
   }
-  setAuthToken(null);
+  clearAuthTokens();
   writeStoredSession(null);
 }
 

@@ -77,32 +77,37 @@ export interface SubjectRow {
 
 export interface RosterRow {
   uid: string;
-  legacy: number | null;
-  match: MatchStatus;
-  dobFlag: boolean;
-  first: CellValue;
-  last: CellValue;
-  dob: CellValue;
-  email: CellValue;
-  phone: CellValue;
-  school: CellValue;
-  father: CellValue;
-  mother: CellValue;
-  fatherEdu: CellValue;
-  fatherEmp: CellValue;
-  motherEdu: CellValue;
-  motherEmp: CellValue;
-  sis: CellValue;
-  bro: CellValue;
-  consent: CellValue;
-  fav: CellValue;
-  diff: CellValue;
-  car1: CellValue;
-  car2: CellValue;
-  t1: number | null;
-  t2: number | null;
-  t3: number | null;
-  band: Band | null;
+  first?: string | null;
+  last?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  dob?: string | null;
+  age?: number | null;
+  email?: string | null;
+  phone?: string | null;
+  school?: string | null;
+  match?: MatchStatus | string;
+  legacy?: string | null;
+  dobFlag?: boolean | null;
+  father?: string | null;
+  mother?: string | null;
+  fatherEdu?: string | null;
+  fatherEmp?: string | null;
+  motherEdu?: string | null;
+  motherEmp?: string | null;
+  sis?: string | null;
+  bro?: string | null;
+  consent?: boolean | null;
+  fav?: string | null;
+  diff?: string | null;
+  car1?: string | null;
+  car2?: string | null;
+  t1?: string | null;
+  t2?: string | null;
+  t3?: string | null;
+  band?: string | null;
+  country?: string | null;
+  [key: string]: unknown;
 }
 
 export interface IssueSummaryRow {
@@ -136,6 +141,8 @@ export interface Paged<T> {
   total: number;
   page: number;
   page_size: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 export interface PageParams {
@@ -154,8 +161,9 @@ export interface OverviewPayload {
 
 export interface YearlyStat {
   year: number;
-  uniqueStudents: number;
+  newStudents: number;
   returningStudents: number;
+  unclassifiedStudents: number;
 };
 
 export interface ProgramStat {
@@ -170,7 +178,14 @@ export interface ProgramStat {
 
 /** Reach page: enrolment split by year joined. */
 export interface ReachPayload {
-  yearly: YearlyStat[];
+  yearly: {
+    yearlyStats: YearlyStat[],
+    totals: {
+      uniqueStudents: number;
+      returningStudents: number;
+      totalParticipations: number;
+    }
+  };
   programs: ProgramStat[];
 }
 
@@ -248,7 +263,12 @@ export type NewCbcOutcome = Partial<Omit<CbcOutcome, 'id'>>;
 /* ── Student register ──────────────────────────────────────────────── */
 
 export interface RegisterFilters extends PageParams {
-  q?: string;
+
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  limit?: number;
+  page_size?: number;
   school?: string;
   match?: MatchStatus;
   missing_consent?: boolean;
@@ -334,4 +354,59 @@ export interface MisData {
   issues: IssueRow[];
   issueSummary: IssueSummaryRow[];
   schools: string[];
+}
+
+
+export interface RegisterData {
+  data: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: Date;
+    age: number | null;
+    email: string | undefined;
+    phone: string | undefined;
+    country: string;
+    school: string | null;
+  }[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface BoardData {
+  ASCG: {
+    uniqueStudents: number;
+    totalParticipations: number;
+    returningParticipations: number;
+    since: number | null;
+    program: string;
+    description: string;
+  };
+  OUTREACH: {
+    uniqueStudents: number;
+    totalParticipations: number;
+    returningParticipations: number;
+    since: number | null;
+    program: string;
+    description: string;
+  };
+  CBC: {
+    uniqueStudents: number;
+    totalParticipations: number;
+    returningParticipations: number;
+    since: number | null;
+    program: string;
+    description: string;
+  };
+  SC: {
+    uniqueStudents: number;
+    totalParticipations: number;
+    returningParticipations: number;
+    since: number | null;
+    program: string;
+    description: string;
+  };
+  consentRate: string;
 }

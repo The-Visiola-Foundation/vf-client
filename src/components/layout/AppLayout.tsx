@@ -18,6 +18,7 @@ import { Register } from '../../pages/Register';
 import { Quality } from '../../pages/Quality';
 import { Board } from '../../pages/Board';
 import { Proposed } from '../../pages/Proposed';
+import { StudentPage } from '../../pages/Student';
 
 /** Thin indeterminate bar shown during a background refetch of loaded data. */
 function FetchIndicator({ active }: { active: boolean }) {
@@ -155,7 +156,7 @@ export function AppLayout() {
   const session = useSession();
   const logout = useLogout();
   const navigate = useNavigate();
-  const { page: pageParam } = useParams();
+  const { page: pageParam, studentId } = useParams();
 
   const user =
     session.data ??
@@ -165,13 +166,27 @@ export function AppLayout() {
   if (!user) return null; // guard redirects to /login
   const role = user.role;
 
+  function onSignOut() {
+    logout.mutate(undefined, { onSettled: () => navigate('/login', { replace: true }) });
+  }
+
+  if (studentId) {
+    return (
+      <>
+        <TopBar user={user} signingOut={logout.isPending} onSignOut={onSignOut} />
+        <div className="flex min-h-[calc(100vh-64px)] items-start max-[820px]:flex-col">
+          <Rail role={role} />
+          <main className="min-w-0 max-w-full flex-1 px-[30px] pb-[70px] pt-[26px] max-[820px]:px-3.5 max-[820px]:pb-[60px] max-[820px]:pt-[18px]">
+            <StudentPage studentId={studentId} />
+          </main>
+        </div>
+      </>
+    );
+  }
+
   const page = isPage(pageParam) ? pageParam : null;
   if (!page || !canAccess(role, page)) {
     return <Navigate to={`/${firstAllowedPage(role)}`} replace />;
-  }
-
-  function onSignOut() {
-    logout.mutate(undefined, { onSettled: () => navigate('/login', { replace: true }) });
   }
 
   const label = roleLabel(role);
@@ -181,7 +196,7 @@ export function AppLayout() {
       <TopBar user={user} signingOut={logout.isPending} onSignOut={onSignOut} />
       <div className="flex min-h-[calc(100vh-64px)] items-start max-[820px]:flex-col">
         <Rail role={role} />
-        <main className="min-w-0 max-w-[1240px] flex-1 px-[30px] pb-[70px] pt-[26px] max-[820px]:px-3.5 max-[820px]:pb-[60px] max-[820px]:pt-[18px]">
+        <main className="min-w-0 max-w-full flex-1 px-[30px] pb-[70px] pt-[26px] max-[820px]:px-3.5 max-[820px]:pb-[60px] max-[820px]:pt-[18px]">
           {page === 'overview' ? (
             <OverviewRoute roleLabelText={label} />
           ) : page === 'reach' ? (

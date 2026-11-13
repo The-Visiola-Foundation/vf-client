@@ -12,6 +12,7 @@ const queryClient = new QueryClient({
       gcTime: Infinity,
       refetchOnWindowFocus: false,
     },
+    
   },
 });
 

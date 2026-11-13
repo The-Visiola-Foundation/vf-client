@@ -16,6 +16,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/students/:studentId',
+    element: (
+      <RequireAuth>
+        <AppLayout />
+      </RequireAuth>
+    ),
+  },
+  {
     path: '/:page',
     element: (
       <RequireAuth>

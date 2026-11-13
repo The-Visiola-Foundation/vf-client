@@ -1,6 +1,6 @@
 import type { ReachPayload } from '../types/mis';
 import { fmt } from '../lib/format';
-import { Card, Kpi, Notice } from '../components/ui/primitives';
+import { Card, Kpi } from '../components/ui/primitives';
 import {
   Eyebrow,
   Grid4,
@@ -13,20 +13,20 @@ import { Table, TableWrap, Td, TdNum, Th, Tr } from '../components/ui/table';
 
 export function Reach({ data }: { data: ReachPayload }) {
   const T = data;
+
   const programs = T.programs ?? [];
   const programById = (id: string) => programs.find((p) => p.id === id);
 
-  const rows = (data.yearly ?? []).map((r) => ({
+  const rows = (data.yearly.yearlyStats ?? []).map((r) => ({
     year: r.year,
-    n: r.uniqueStudents,
+    n: r.newStudents,
     r: r.returningStudents,
-    p: r.uniqueStudents + r.returningStudents,
+    c: r.unclassifiedStudents,
+    p: r.newStudents + r.returningStudents + r.unclassifiedStudents,
   }));
   const totalNew = rows.reduce((a, b) => a + b.n, 0);
   const totalRet = rows.reduce((a, b) => a + b.r, 0);
   const totalEnrolled = rows.reduce((a, b) => a + b.p, 0);
-  const rows2025 = rows.find((r) => r.year === 2025);
-
   return (
     <>
       <Eyebrow>Indicator 1</Eyebrow>
@@ -74,6 +74,7 @@ export function Reach({ data }: { data: ReachPayload }) {
           series={[
             { k: 'n', label: 'Joined for the first time', c: '#00A3DA' },
             { k: 'r', label: 'Returning', c: '#958EB8' },
+            { k: 'c', label: 'Unclassified', c: '#F5A623' },
           ]}
         />
       </Card>
@@ -85,6 +86,7 @@ export function Reach({ data }: { data: ReachPayload }) {
               <Th>Year</Th>
               <Th align="right">First-time</Th>
               <Th align="right">Returning</Th>
+              <Th align="right">Unclassified</Th>
               <Th align="right">Total enrolled</Th>
             </tr>
           </thead>
@@ -94,6 +96,7 @@ export function Reach({ data }: { data: ReachPayload }) {
                 <Td className="font-mono tabular-nums">{r.year}</Td>
                 <TdNum>{fmt(r.n)}</TdNum>
                 <TdNum>{fmt(r.r)}</TdNum>
+                <TdNum>{fmt(r.c)}</TdNum>
                 <TdNum>{fmt(r.p)}</TdNum>
               </Tr>
             ))}
@@ -101,13 +104,14 @@ export function Reach({ data }: { data: ReachPayload }) {
               <Td>All years</Td>
               <TdNum>{fmt(totalNew)}</TdNum>
               <TdNum>{fmt(totalRet)}</TdNum>
+              <TdNum>{fmt(rows.reduce((a, b) => a + b.c, 0))}</TdNum>
               <TdNum>{fmt(totalEnrolled)}</TdNum>
             </tr>
           </tbody>
         </Table>
       </TableWrap>
 
-      <Notice variant="warn" className="mt-4" title="Returning students are almost certainly undercounted">
+      {/* <Notice variant="warn" className="mt-4" title="Returning students are almost certainly undercounted">
         <p>
           A returning girl can only be detected when her last name, date of birth and school
           all match a previous year. Anyone who changed school appears as a new student. The
@@ -124,7 +128,7 @@ export function Reach({ data }: { data: ReachPayload }) {
           different things — year of joining against year of training — and the definition
           needs settling before either is used externally.
         </p>
-      </Notice>
+      </Notice> */}
     </>
   );
 }

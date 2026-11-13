@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { MisData } from '../types/mis';
+import type { MisData, RegisterData, RosterRow } from '../types/mis';
 import { fmt } from '../lib/format';
-import { exportRegisterEdits } from '../lib/csv';
 import { Notice } from '../components/ui/primitives';
 import { Eyebrow, Lede, PageTitle } from '../components/ui/layout';
 import {
@@ -13,64 +12,118 @@ import { RegisterTable } from '../components/register/RegisterTable';
 import {
   useAddStudent,
   useRegisterEdits,
+  useRegisterPage,
   useSaveCell,
 } from '../queries/useRegister';
 
-export function Register({ data }: { data: MisData }) {
+function normalizeApiPageRows(rows: Array<Record<string, unknown>>): RosterRow[] {
+  return rows.map((row) => {
+    const firstName = typeof row.firstName === 'string' ? row.firstName : null;
+    const lastName = typeof row.lastName === 'string' ? row.lastName : null;
+    const dateOfBirth = typeof row.dateOfBirth === 'string' ? row.dateOfBirth : null;
+    const email = typeof row.email === 'string' ? row.email : null;
+    const phone = typeof row.phone === 'string' ? row.phone : null;
+    const school = typeof row.school === 'string' ? row.school : null;
+
+    return {
+      uid: String(row.id ?? ''),
+      legacy: null,
+      match: 'unmatched',
+      dobFlag: false,
+      first: firstName,
+      last: lastName,
+      dob: dateOfBirth,
+      email,
+      phone,
+      school,
+      father: null,
+      mother: null,
+      fatherEdu: null,
+      fatherEmp: null,
+      motherEdu: null,
+      motherEmp: null,
+      sis: null,
+      bro: null,
+      consent: email || phone ? true : null,
+      fav: null,
+      diff: null,
+      car1: null,
+      car2: null,
+      t1: null,
+      t2: null,
+      t3: null,
+      band: null,
+    };
+  });
+}
+
+export function Register({ data }: { data?: RegisterData | MisData }) {
   const [params, setParams] = useSearchParams();
 
-  const text = params.get('q') ?? '';
-  const school = params.get('school') ?? '';
-  const match = params.get('match') ?? '';
-  const missing = params.get('missing') === '1';
+  const text = params.get('name') ?? params.get('q') ?? '';
+  const page = Number(params.get('page') ?? '1') || 1;
+  const pageSize = Number(params.get('limit') ?? params.get('page_size') ?? '20') || 20;
 
   const { data: dirtyKeys = [] } = useRegisterEdits();
   const dirty = useMemo(() => new Set(dirtyKeys), [dirtyKeys]);
   const saveCell = useSaveCell();
   const addStudent = useAddStudent();
 
-  const saving = saveCell.isPending || addStudent.isPending;
-  const mutationError = saveCell.error ?? addStudent.error;
+  const query = useRegisterPage({
+    name: text,
+    page,
+    limit: pageSize,
+  });
 
-  const roster = data.roster;
-
+  const roster = useMemo(
+    () =>
+      query.data?.items ??
+      normalizeApiPageRows((data as any)?.data ?? (data as any)?.roster ?? []),
+    [data, query.data],
+  );
   const rows = useMemo(
     () =>
       roster.filter((r) => {
-        if (school && r.school !== school) return false;
-        if (match && r.match !== match) return false;
-        if (missing && r.consent) return false;
-        if (text) {
-          const q = text.toLowerCase();
-          return `${r.uid} ${r.last ?? ''} ${r.first ?? ''} ${r.school ?? ''}`
-            .toLowerCase()
-            .includes(q);
-        }
-        return true;
+        if (!text) return true;
+        const q = text.trim().toLowerCase();
+        const fullName = `${r.first ?? ''} ${r.last ?? ''}`.trim().toLowerCase();
+        return fullName.includes(q);
       }),
-    [roster, school, match, missing, text],
+    [roster, text],
   );
+  const total = query.data?.total ?? (data as any)?.total ?? roster.length;
+  const currentPage = query.data?.page ?? page;
+  const totalPages = Math.max(1, Math.ceil(total / (pageSize || 1)));
+
+  const saving = saveCell.isPending || addStudent.isPending;
+  const mutationError = saveCell.error ?? addStudent.error;
 
   function applyPatch(patch: Partial<RegisterFilters>) {
     const next = new URLSearchParams(params);
     if ('text' in patch) {
       const v = patch.text ?? '';
-      if (v) next.set('q', v);
-      else next.delete('q');
+      if (v) {
+        next.set('name', v);
+        next.delete('q');
+      } else {
+        next.delete('name');
+        next.delete('q');
+      }
+      next.delete('page');
     }
     if ('school' in patch) {
-      const v = patch.school ?? '';
-      if (v) next.set('school', v);
-      else next.delete('school');
+      next.delete('school');
+      next.delete('page');
     }
+    next.delete('page_size');
+    next.delete('limit');
     if ('match' in patch) {
-      const v = patch.match ?? '';
-      if (v) next.set('match', v);
-      else next.delete('match');
+      next.delete('match');
+      next.delete('page');
     }
     if ('missing' in patch) {
-      if (patch.missing) next.set('missing', '1');
-      else next.delete('missing');
+      next.delete('missing');
+      next.delete('page');
     }
     setParams(next, { replace: true });
   }
@@ -84,9 +137,14 @@ export function Register({ data }: { data: MisData }) {
     applyPatch({ text: '' });
   }
 
-  function onExport() {
-    const ok = exportRegisterEdits(roster, dirtyKeys);
-    if (!ok) window.alert('No edits to export yet. Change a cell first.');
+  function onPageChange(nextPage: number) {
+    const next = new URLSearchParams(params);
+    const limit = Number(params.get('limit') ?? params.get('page_size') ?? 20) || 20;
+    const bounded = Math.min(Math.max(1, nextPage), totalPages);
+    next.set('page', String(bounded));
+    next.set('limit', String(limit));
+    next.delete('page_size');
+    setParams(next, { replace: true });
   }
 
   return (
@@ -94,18 +152,15 @@ export function Register({ data }: { data: MisData }) {
       <Eyebrow>Records · key staff only</Eyebrow>
       <PageTitle>Student register</PageTitle>
       <Lede>
-        Click any unlocked cell to edit it. Grey hatching means the field was never
-        collected — fill it in here. Derived columns (age, GPA, progress) are locked because
-        they are computed from other fields.
+        This view matches the live students JSON: student ID, names, DOB, age, contact info,
+        school and country. Pagination follows the API response page metadata.
       </Lede>
 
       <RegisterControls
-        filters={{ text, school, match, missing }}
-        schools={data.schools}
+        filters={{ text }}
         busy={addStudent.isPending}
         onChange={applyPatch}
         onAdd={onAdd}
-        onExport={onExport}
       />
 
       {mutationError ? (
@@ -119,15 +174,38 @@ export function Register({ data }: { data: MisData }) {
         </Notice>
       ) : null}
 
-      <p className="mb-3 mt-[-4px] text-[12.5px] text-muted">
+      <p className="mb-3 -mt-1 text-[12.5px] text-muted">
         Showing <b className="font-mono tabular-nums">{fmt(rows.length)}</b> of{' '}
-        <b className="font-mono tabular-nums">{fmt(roster.length)}</b> loaded records ·{' '}
+        <b className="font-mono tabular-nums">{fmt(total)}</b> students ·{' '}
         <b className="font-mono tabular-nums">{dirty.size}</b> edited
-        {saving ? ' · Saving…' : ''} · the full register of{' '}
-        {fmt(data.totals.unique_students)} students is in students.csv
+        {saving ? ' · Saving…' : ''} · page{' '}
+        <b className="font-mono tabular-nums">{currentPage}</b> of{' '}
+        <b className="font-mono tabular-nums">{totalPages}</b>
       </p>
 
       <RegisterTable rows={rows} dirty={dirty} onCommit={onCommit} />
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+          className="rounded-[7px] border border-line-2 bg-card px-3 py-2 text-[12.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-[12.5px] text-muted">
+          Page {currentPage} / {totalPages}
+        </span>
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+          className="rounded-[7px] border border-line-2 bg-card px-3 py-2 text-[12.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
     </>
   );
 }

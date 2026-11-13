@@ -3,9 +3,9 @@
  * returns names, contacts, or individual records. Serve from reporting views
  * / a separate schema + DB role server-side.
  *
- *   GET /mis/board-summary                 -> BoardSummaryPayload
- *   GET /mis/finance/spend?programme=&year= -> ProgrammeSpend[]
- *   GET /mis/metrics-proposals              -> MetricProposal[]
+ *   GET /stats/board                     -> BoardSummaryPayload
+ *   GET /stats/finance/spend?programme=&year= -> ProgrammeSpend[]
+ *   GET /stats/metrics-proposals              -> MetricProposal[]
  */
 import type {
   BoardSummaryPayload,
@@ -18,7 +18,7 @@ import { apiRequest } from './client';
 import { getOrFallback, withParams } from './shared';
 
 export async function fetchBoardSummary(signal?: AbortSignal): Promise<BoardSummaryPayload> {
-  return getOrFallback('/mis/board-summary', { signal }, (s) => ({
+  return getOrFallback('/stats/board', { signal }, (s) => ({
     unique_students: s.totals.unique_students,
     schools: s.totals.schools,
     improved_pct:
@@ -37,9 +37,9 @@ export async function fetchProgrammeSpend(
   signal?: AbortSignal,
 ): Promise<ProgrammeSpend[]> {
   if (!isBackendConfigured) return [];
-  return apiRequest<ProgrammeSpend[]>(withParams('/mis/finance/spend', params), { signal });
+  return apiRequest<ProgrammeSpend[]>(withParams('/stats/finance/spend', params), { signal });
 }
 
 export async function fetchMetricProposals(signal?: AbortSignal): Promise<MetricProposal[]> {
-  return getOrFallback('/mis/metrics-proposals', { signal }, () => []);
+  return getOrFallback('/stats/metrics-proposals', { signal }, () => []);
 }
