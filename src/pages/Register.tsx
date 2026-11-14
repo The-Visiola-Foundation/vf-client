@@ -75,7 +75,7 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
     limit: pageSize,
   });
 
-  const roster = useMemo(
+  const roster: RosterRow[] = useMemo(
     () =>
       query.data?.items ??
       normalizeApiPageRows((data as any)?.data ?? (data as any)?.roster ?? []),
@@ -83,7 +83,7 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
   );
   const rows = useMemo(
     () =>
-      roster.filter((r) => {
+      roster.filter((r: RosterRow) => {
         if (!text) return true;
         const q = text.trim().toLowerCase();
         const fullName = `${r.first ?? ''} ${r.last ?? ''}`.trim().toLowerCase();

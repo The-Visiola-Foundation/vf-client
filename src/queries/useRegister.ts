@@ -8,6 +8,7 @@ import type {
   NewCbcOutcome,
   RegisterFilters,
   RegisterPage,
+  RosterRow,
 } from '../types/mis';
 import { registerBlankRow } from '../lib/registerColumns';
 import {
@@ -15,14 +16,15 @@ import {
   createCbcOutcome,
   createRegisterStudent,
   exportRegisterEdits,
-  fetchRegisterPage,
-  fetchSchools,
   isBackendConfigured,
   patchCbcGraduate,
   resolveQualityIssue,
   saveRegisterCell,
+  updateStudent,
+  type UpdateStudentPayload,
 } from '../lib/api';
 import { queryKeys } from './keys';
+import { queryOptionFactories } from './options';
 
 export interface CellEdit {
   uid: string;
@@ -32,37 +34,19 @@ export interface CellEdit {
 
 /** School names for the register filter dropdown. */
 export function useSchools() {
-  return useQuery<string[]>({
-    queryKey: queryKeys.schools,
-    queryFn: ({ signal }) => fetchSchools(signal),
-    staleTime: isBackendConfigured ? 60_000 : Infinity,
-    gcTime: Infinity,
-    refetchOnWindowFocus: false,
-    retry: isBackendConfigured ? 2 : 1,
-  });
+  return useQuery(queryOptionFactories.schools());
 }
 
 /**
- * One paginated register page. In UI-only mode the filters run against the
- * snapshot; with a backend they become query params on GET /mis/students.
+ * One paginated register page.
  */
 export function useRegisterPage(filters: RegisterFilters = {}) {
-  return useQuery<RegisterPage>({
-    queryKey: queryKeys.registerPage(
-      filters as Record<string, string | number | boolean | undefined>,
-    ),
-    queryFn: ({ signal }) => fetchRegisterPage(filters, signal),
-    staleTime: isBackendConfigured ? 30_000 : Infinity,
-    gcTime: Infinity,
-    refetchOnWindowFocus: false,
-    retry: isBackendConfigured ? 2 : 1,
-    placeholderData: (prev) => prev,
-  });
+  return useQuery(queryOptionFactories.registerPage(filters));
 }
 
 /**
  * Download the session's register edits as CSV. UI-only: built locally;
- * backend: POSTed to /mis/students/export and downloaded from the response.
+ * backend: POSTed to /students/export and downloaded from the response.
  */
 export function useExportRegisterEdits() {
   return useMutation({
@@ -144,8 +128,7 @@ export function useRegisterEdits() {
 /**
  * Commits a single edited cell. The cache is updated optimistically so the UI
  * is instant; when a backend is configured the write is sent and rolled back
- * (see `onError`) if it fails. In UI-only mode the write is a local no-op and
- * the optimistic value simply stands.
+ * if it fails.
  */
 export function useSaveCell() {
   const qc = useQueryClient();
@@ -154,42 +137,60 @@ export function useSaveCell() {
     mutationFn: (edit: CellEdit) =>
       saveRegisterCell({ uid: edit.uid, field: edit.key, value: edit.value }),
     onMutate: (edit: CellEdit) => {
-      const previous = qc.getQueryData<MisData>(queryKeys.dashboard);
-      if (!previous) return { previous };
-
-      const row = previous.roster.find((r) => r.uid === edit.uid);
-      if (!row) return { previous };
-      if ((row as unknown as Record<string, unknown>)[edit.key] === edit.value) {
-        return { previous };
-      }
-
-      qc.setQueryData<MisData>(queryKeys.dashboard, {
-        ...previous,
-        roster: previous.roster.map((r) =>
-          r.uid === edit.uid ? { ...r, [edit.key]: edit.value } : r,
-        ),
+      // 1. Optimistically update paginated register pages in cache
+      qc.setQueriesData<RegisterPage>({ queryKey: ['mis', 'students'] }, (old) => {
+        if (!old?.items) return old;
+        return {
+          ...old,
+          items: old.items.map((row) =>
+            row.uid === edit.uid ? ({ ...row, [edit.key]: edit.value } as RosterRow) : row,
+          ),
+        };
       });
+
+      // 2. Optimistically update individual student cache if loaded
+      qc.setQueryData<RosterRow>(queryKeys.student(edit.uid), (old) => {
+        if (!old) return old;
+        return { ...old, [edit.key]: edit.value } as RosterRow;
+      });
+
+      // 3. Record dirty cell edit
       qc.setQueryData<string[]>(queryKeys.registerEdits, (old = []) => {
         const k = `${edit.uid}|${edit.key}`;
         return old.includes(k) ? old : [...old, k];
       });
 
+      // 4. Update legacy dashboard if present
+      const previous = qc.getQueryData<MisData>(queryKeys.dashboard);
+      if (previous) {
+        qc.setQueryData<MisData>(queryKeys.dashboard, {
+          ...previous,
+          roster: previous.roster.map((r) =>
+            r.uid === edit.uid ? { ...r, [edit.key]: edit.value } : r,
+          ),
+        });
+      }
+
       return { previous };
     },
-    onError: (_error, _edit, context) => {
+    onError: (_error, edit, context) => {
       if (context?.previous) {
         qc.setQueryData(queryKeys.dashboard, context.previous);
       }
+      qc.invalidateQueries({ queryKey: ['mis', 'students'] });
+      qc.invalidateQueries({ queryKey: queryKeys.student(edit.uid) });
     },
-    onSuccess: () => {
+    onSuccess: (_data, edit) => {
       if (isBackendConfigured) {
+        qc.invalidateQueries({ queryKey: ['mis', 'students'] });
+        qc.invalidateQueries({ queryKey: queryKeys.student(edit.uid) });
         qc.invalidateQueries({ queryKey: queryKeys.dashboard });
       }
     },
   });
 }
 
-/** Prepends a fresh blank student row, exactly like the original "Add student". */
+/** Prepends a fresh blank student row or triggers creation on backend. */
 export function useAddStudent() {
   const qc = useQueryClient();
 
@@ -197,26 +198,63 @@ export function useAddStudent() {
     mutationFn: () => createRegisterStudent(),
     onMutate: () => {
       const previous = qc.getQueryData<MisData>(queryKeys.dashboard);
-      if (!previous) return { previous };
-
-      const n = previous.roster.filter((r) => r.uid.startsWith('VF-NEW')).length + 1;
-      const row = registerBlankRow(`VF-NEW-${String(n).padStart(4, '0')}`);
-      qc.setQueryData<MisData>(queryKeys.dashboard, {
-        ...previous,
-        roster: [row, ...previous.roster],
-      });
-
+      if (previous) {
+        const n = previous.roster.filter((r) => r.uid.startsWith('VF-NEW')).length + 1;
+        const row = registerBlankRow(`VF-NEW-${String(n).padStart(4, '0')}`);
+        qc.setQueryData<MisData>(queryKeys.dashboard, {
+          ...previous,
+          roster: [row, ...previous.roster],
+        });
+      }
       return { previous };
     },
     onError: (_error, _vars, context) => {
       if (context?.previous) {
         qc.setQueryData(queryKeys.dashboard, context.previous);
       }
+      qc.invalidateQueries({ queryKey: ['mis', 'students'] });
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mis', 'students'] });
+      qc.invalidateQueries({ queryKey: queryKeys.overview });
       if (isBackendConfigured) {
         qc.invalidateQueries({ queryKey: queryKeys.dashboard });
       }
+    },
+  });
+}
+
+/** Updates student details and synchronizes cache. */
+export function useUpdateStudent() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (vars: { id: string; payload: UpdateStudentPayload }) =>
+      updateStudent(vars.id, vars.payload),
+    onMutate: async ({ id, payload }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.student(id) });
+      const previous = qc.getQueryData<RosterRow>(queryKeys.student(id));
+
+      if (previous) {
+        qc.setQueryData<RosterRow>(queryKeys.student(id), {
+          ...previous,
+          ...payload,
+          first: payload.firstName ?? payload.first ?? previous.first,
+          last: payload.lastName ?? payload.last ?? previous.last,
+          dob: payload.dateOfBirth ?? payload.dob ?? previous.dob,
+        });
+      }
+
+      return { previous };
+    },
+    onError: (_err, { id }, context) => {
+      if (context?.previous) {
+        qc.setQueryData(queryKeys.student(id), context.previous);
+      }
+    },
+    onSettled: (_data, _err, { id }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.student(id) });
+      qc.invalidateQueries({ queryKey: ['mis', 'students'] });
     },
   });
 }

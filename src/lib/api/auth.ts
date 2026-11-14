@@ -15,8 +15,8 @@ import type { AuthUser, LoginInput } from '../../types/auth';
 import { roleLabel, type Role } from '../access';
 import { isBackendConfigured } from './config';
 import {
+  api,
   ApiError,
-  apiRequest,
   clearAuthTokens,
   getAuthToken,
   setAuthTokens,
@@ -47,7 +47,7 @@ export function demoEmailFor(role: Role): string {
 export function normalizeRole(value: unknown): Role {
   const raw = String(value ?? '').trim().toLowerCase();
 
-  if (raw === 'admin' || raw === 'key_staff' || raw.includes('key') && raw.includes('staff')) {
+  if (raw === 'admin' || raw === 'key_staff' || (raw.includes('key') && raw.includes('staff'))) {
     return 'admin';
   }
   if (raw === 'staff' || raw === 'programme_staff' || raw.includes('programme') || raw.includes('staff')) {
@@ -62,7 +62,7 @@ export function normalizeRole(value: unknown): Role {
 
 function readStoredSession(): AuthUser | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AuthUser>;
     if (typeof parsed.email === 'string') {
@@ -81,8 +81,8 @@ function readStoredSession(): AuthUser | null {
 
 function writeStoredSession(user: AuthUser | null) {
   try {
-    if (user) localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    else localStorage.removeItem(SESSION_KEY);
+    if (user) sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    else sessionStorage.removeItem(SESSION_KEY);
   } catch {
     /* storage unavailable — session still lives in the query cache */
   }
@@ -129,9 +129,9 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
     return user;
   }
 
-  const res = await apiRequest<LoginResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password: input.password }),
+  const res = await api.post<LoginResponse>('/auth/login', {
+    email,
+    password: input.password,
   });
 
   const token =
@@ -147,7 +147,18 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
     throw new ApiError('The server did not return an authentication token.', 401);
   }
 
-  const backendUser = res.user ?? { email, name: email, role: 'staff' };
+  setAuthTokens(token, refreshToken);
+
+  let backendUser = res.user;
+  if (!backendUser || !backendUser.email) {
+    try {
+      backendUser = await api.get<{ email?: string; name?: string; role?: string }>('/auth/me');
+    } catch {
+      // If fetching profile fails, fallback to login input email
+      backendUser = { email, name: email, role: 'staff' };
+    }
+  }
+
   const resolvedRole: Role = normalizeRole(backendUser.role ?? demoRole ?? 'staff');
 
   const user: AuthUser = {
@@ -156,7 +167,6 @@ export async function login(input: LoginInput, demoRole?: Role): Promise<AuthUse
     role: resolvedRole,
   };
 
-  setAuthTokens(token, refreshToken);
   writeStoredSession(user);
   return user;
 }
@@ -184,7 +194,7 @@ export async function restoreSession(): Promise<AuthUser | null> {
   }
 
   try {
-    const me = await apiRequest<{ email?: string; name?: string; role?: string }>('/auth/me');
+    const me = await api.get<{ email?: string; name?: string; role?: string }>('/auth/me');
     const normalized = {
       email: me?.email ?? stored.email,
       name: me?.name ?? stored.name,
@@ -204,7 +214,7 @@ export async function restoreSession(): Promise<AuthUser | null> {
 export async function logout(): Promise<void> {
   if (isBackendConfigured) {
     try {
-      await apiRequest<void>('/auth/logout', { method: 'POST' });
+      await api.post<void>('/auth/logout');
     } catch {
       /* signing out locally is what matters — a dead token is harmless */
     }

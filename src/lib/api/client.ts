@@ -1,9 +1,8 @@
 import { API_BASE_URL } from './config';
 
 /**
- * Token store. Memory-first, mirrored to localStorage so a refresh keeps the
- * session. The backend only ever sees it via the `Authorization` header that
- * `apiRequest()` attaches — components never touch the token directly.
+ * Token store. Memory-first, mirrored to sessionStorage so a refresh keeps the
+ * session for the tab while closing the tab securely clears it.
  */
 const TOKEN_KEY = 'vf-mis.token';
 const REFRESH_TOKEN_KEY = 'vf-mis.refresh-token';
@@ -11,17 +10,37 @@ const REFRESH_TOKEN_KEY = 'vf-mis.refresh-token';
 let memoryToken: string | null = null;
 let memoryRefreshToken: string | null = null;
 
+type UnauthorizedHandler = () => void;
+const unauthorizedListeners = new Set<UnauthorizedHandler>();
+
+export function onUnauthorized(handler: UnauthorizedHandler): () => void {
+  unauthorizedListeners.add(handler);
+  return () => {
+    unauthorizedListeners.delete(handler);
+  };
+}
+
+function notifyUnauthorized() {
+  for (const listener of unauthorizedListeners) {
+    try {
+      listener();
+    } catch (err) {
+      console.error('Error in onUnauthorized listener:', err);
+    }
+  }
+}
+
 export function setAuthTokens(accessToken: string | null, refreshToken: string | null = null) {
   memoryToken = accessToken;
   memoryRefreshToken = refreshToken;
   try {
-    if (accessToken) localStorage.setItem(TOKEN_KEY, accessToken);
-    else localStorage.removeItem(TOKEN_KEY);
+    if (accessToken) sessionStorage.setItem(TOKEN_KEY, accessToken);
+    else sessionStorage.removeItem(TOKEN_KEY);
 
-    if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    else localStorage.removeItem(REFRESH_TOKEN_KEY);
+    if (refreshToken) sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    else sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   } catch {
-    /* storage unavailable (private mode) — memory still works for the session */
+    /* storage unavailable (e.g. private mode) — memory still works for the session */
   }
 }
 
@@ -32,7 +51,7 @@ export function setAuthToken(token: string | null) {
 export function getAuthToken(): string | null {
   if (memoryToken) return memoryToken;
   try {
-    memoryToken = localStorage.getItem(TOKEN_KEY);
+    memoryToken = sessionStorage.getItem(TOKEN_KEY);
   } catch {
     memoryToken = null;
   }
@@ -42,7 +61,7 @@ export function getAuthToken(): string | null {
 export function getRefreshToken(): string | null {
   if (memoryRefreshToken) return memoryRefreshToken;
   try {
-    memoryRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    memoryRefreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
   } catch {
     memoryRefreshToken = null;
   }
@@ -53,105 +72,257 @@ export function clearAuthTokens() {
   setAuthTokens(null, null);
 }
 
-/** A failed HTTP request, keeping the status so callers can react to it. */
+/** A failed HTTP request, preserving status, error code, and validation details. */
 export class ApiError extends Error {
   readonly status: number | undefined;
+  readonly code: string | undefined;
+  readonly details: unknown;
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, details?: unknown, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.details = details;
+    this.code = code;
   }
 }
 
+function extractErrorMessage(body: unknown, fallback: string): string {
+  if (body && typeof body === 'object') {
+    const b = body as { message?: string | string[]; error?: string };
+    if (Array.isArray(b.message)) {
+      return b.message.filter(Boolean).join(', ');
+    }
+    if (typeof b.message === 'string' && b.message.trim()) {
+      return b.message;
+    }
+    if (typeof b.error === 'string' && b.error.trim()) {
+      return b.error;
+    }
+  }
+  return fallback;
+}
+
 /**
- * Thin `fetch` wrapper for the backend. Prefixes the configured base URL,
- * attaches the session token when one exists, and normalises error handling /
- * JSON parsing. Swap or extend this one function (refresh tokens,
- * interceptors…) and every resource follows.
+ * Singleton in-flight promise for token refresh.
+ * Serializes all concurrent 401s so only one request calls /auth/refresh.
  */
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    const currentRefreshToken = getRefreshToken();
+    if (!currentRefreshToken) {
+      clearAuthTokens();
+      notifyUnauthorized();
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: currentRefreshToken }),
+      });
+
+      if (!res.ok) {
+        clearAuthTokens();
+        notifyUnauthorized();
+        return null;
+      }
+
+      const body = await res.json();
+      const payload =
+        body && typeof body === 'object' && 'data' in body
+          ? (body as { data: Record<string, unknown> }).data
+          : (body as Record<string, unknown>);
+
+      const nextAccess =
+        typeof payload?.accessToken === 'string'
+          ? payload.accessToken
+          : typeof payload?.token === 'string'
+            ? payload.token
+            : null;
+
+      const nextRefresh =
+        typeof payload?.refreshToken === 'string'
+          ? payload.refreshToken
+          : currentRefreshToken;
+
+      if (!nextAccess) {
+        clearAuthTokens();
+        notifyUnauthorized();
+        return null;
+      }
+
+      setAuthTokens(nextAccess, nextRefresh);
+      return nextAccess;
+    } catch {
+      clearAuthTokens();
+      notifyUnauthorized();
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+export function buildUrlWithParams(path: string, params?: Record<string, unknown>): string {
+  if (!params) return path;
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      qs.set(key, String(value));
+    }
+  }
+  const str = qs.toString();
+  return str ? `${path}${path.includes('?') ? '&' : '?'}${str}` : path;
+}
+
+export interface RequestOptions extends Omit<RequestInit, 'body'> {
+  params?: Record<string, unknown>;
+  body?: unknown;
+}
+
+/**
+ * Core dispatch function. Attaches auth header, handles refresh on 401 via mutex,
+ * normalizes NestJS response envelopes, and parses errors.
+ */
+async function executeRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+  isRetry = false,
+): Promise<T> {
   if (!API_BASE_URL) {
     throw new ApiError('No backend is configured (VITE_API_BASE_URL is empty).');
   }
 
-  const requestWithToken = async (token: string | null, isRetry = false): Promise<Response> => {
-    return fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        Accept: 'application/json',
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(init.headers ?? {}),
-      },
-    }).then(async (res) => {
-      if (res.status === 401 && !isRetry && path !== '/auth/refresh' && path !== '/auth/login') {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-          clearAuthTokens();
-          throw new ApiError('Your session has expired. Please sign in again.', 401);
-        }
+  const fullPath = buildUrlWithParams(path, options.params);
+  const token = getAuthToken();
 
-        try {
-          const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken }),
-          });
+  const isBodyJson =
+    options.body !== undefined &&
+    !(options.body instanceof FormData) &&
+    !(options.body instanceof Blob);
 
-          if (refreshRes.ok) {
-            const refreshBody = await refreshRes.json();
-            const refreshData = refreshBody && typeof refreshBody === 'object' && 'data' in refreshBody ? refreshBody.data : refreshBody;
-            const nextAccessToken = typeof refreshData?.accessToken === 'string' ? refreshData.accessToken : null;
-            const nextRefreshToken = typeof refreshData?.refreshToken === 'string' ? refreshData.refreshToken : refreshToken;
-
-            if (nextAccessToken) {
-              setAuthTokens(nextAccessToken, nextRefreshToken);
-              return requestWithToken(nextAccessToken, true);
-            }
-          }
-        } catch {
-          // Fall through to final auth error below.
-        }
-
-        clearAuthTokens();
-        throw new ApiError('Your session has expired. Please sign in again.', 401);
-      }
-
-      return res;
-    });
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(isBodyJson ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options.headers as Record<string, string>) ?? {}),
   };
 
-  const res = await requestWithToken(getAuthToken());
+  const body = isBodyJson ? JSON.stringify(options.body) : (options.body as BodyInit | undefined);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${fullPath}`, {
+      ...options,
+      headers,
+      body,
+    });
+  } catch (netErr) {
+    throw new ApiError(
+      netErr instanceof Error ? netErr.message : 'Network request failed',
+      undefined,
+      netErr,
+    );
+  }
+
+  // Handle 401 Unauthorized
+  if (
+    res.status === 401 &&
+    !isRetry &&
+    !path.startsWith('/auth/login') &&
+    !path.startsWith('/auth/refresh')
+  ) {
+    const nextToken = await refreshAccessToken();
+    if (nextToken) {
+      return executeRequest<T>(path, options, true);
+    }
+    throw new ApiError('Your session has expired. Please sign in again.', 401);
+  }
 
   if (res.status === 401) {
     clearAuthTokens();
+    notifyUnauthorized();
     throw new ApiError('Your session has expired. Please sign in again.', 401);
   }
 
   if (!res.ok) {
-    let detail = '';
+    let errorBody: unknown = null;
     try {
-      const body = (await res.json()) as { message?: string };
-      if (body?.message) detail = `: ${body.message}`;
+      errorBody = await res.json();
     } catch {
-      /* non-JSON error body — fall through to the generic message */
+      /* non-JSON body */
     }
-    throw new ApiError(`Request to ${path} failed${detail}`, res.status);
+    const message = extractErrorMessage(errorBody, `Request to ${path} failed (HTTP ${res.status})`);
+    throw new ApiError(message, res.status, errorBody);
   }
+
   if (res.status === 204) {
     return undefined as T;
   }
 
-  const data = await res.json();
+  const rawData = await res.json();
 
-  if (data && typeof data === 'object' && 'data' in data) {
-    return (data as { data: T }).data;
+  // NestJS response envelope unwrapping ({ statusCode, data, message })
+  if (rawData && typeof rawData === 'object' && 'data' in rawData) {
+    return (rawData as { data: T }).data;
   }
 
-  return data as T;
+  return rawData as T;
 }
 
+/**
+ * Modern typed HTTP client.
+ */
+export const api = {
+  get<T>(path: string, options?: RequestOptions): Promise<T> {
+    return executeRequest<T>(path, { ...options, method: 'GET' });
+  },
+
+  post<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return executeRequest<T>(path, { ...options, method: 'POST', body });
+  },
+
+  patch<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+    return executeRequest<T>(path, { ...options, method: 'PATCH', body });
+  },
+
+  delete<T>(path: string, options?: RequestOptions): Promise<T> {
+    return executeRequest<T>(path, { ...options, method: 'DELETE' });
+  },
+
+  request<T>(path: string, options?: RequestOptions): Promise<T> {
+    return executeRequest<T>(path, options);
+  },
+};
+
+/**
+ * Backward-compatible apiRequest wrapper.
+ */
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let parsedBody: unknown = init.body;
+  if (typeof init.body === 'string') {
+    try {
+      parsedBody = JSON.parse(init.body);
+    } catch {
+      parsedBody = init.body;
+    }
+  }
+
+  return executeRequest<T>(path, {
+    ...init,
+    body: parsedBody,
+  });
+}

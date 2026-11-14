@@ -3,32 +3,55 @@
  * returns names, contacts, or individual records. Serve from reporting views
  * / a separate schema + DB role server-side.
  *
- *   GET /stats/board                     -> BoardSummaryPayload
+ *   GET /stats/board                     -> BoardData
  *   GET /stats/finance/spend?programme=&year= -> ProgrammeSpend[]
  *   GET /stats/metrics-proposals              -> MetricProposal[]
  */
 import type {
-  BoardSummaryPayload,
+  BoardData,
   MetricProposal,
   ProgrammeSpend,
   ProgrammeSpendParams,
 } from '../../types/mis';
 import { isBackendConfigured } from './config';
-import { apiRequest } from './client';
+import { api } from './client';
 import { getOrFallback, withParams } from './shared';
 
-export async function fetchBoardSummary(signal?: AbortSignal): Promise<BoardSummaryPayload> {
+export async function fetchBoardSummary(signal?: AbortSignal): Promise<BoardData> {
   return getOrFallback('/stats/board', { signal }, (s) => ({
-    unique_students: s.totals.unique_students,
-    schools: s.totals.schools,
-    improved_pct:
-      s.progress.assessed > 0 ? (s.progress.improved / s.progress.assessed) * 100 : null,
-    assessed: s.progress.assessed,
-    // Consent was never collected — surface the gap, not a zero.
-    consent_pct: null,
-    reach_by_year: s.reach,
-    outcome_split: s.progress,
-    terms: s.terms,
+    ASCG: {
+      uniqueStudents: s.totals.unique_students,
+      totalParticipations: s.totals.enrolments,
+      returningParticipations: s.totals.enrolments - s.totals.unique_students,
+      since: 2018,
+      program: 'ASCG',
+      description: 'After-School STEM Clubs for Girls',
+    },
+    OUTREACH: {
+      uniqueStudents: 0,
+      totalParticipations: 0,
+      returningParticipations: 0,
+      since: null,
+      program: 'OUTREACH',
+      description: 'Outreach program',
+    },
+    CBC: {
+      uniqueStudents: 0,
+      totalParticipations: 0,
+      returningParticipations: 0,
+      since: null,
+      program: 'CBC',
+      description: 'Coding Boot Camp',
+    },
+    SC: {
+      uniqueStudents: 0,
+      totalParticipations: 0,
+      returningParticipations: 0,
+      since: null,
+      program: 'SC',
+      description: 'STEM Clinic',
+    },
+    consentRate: '0%',
   }));
 }
 
@@ -37,7 +60,7 @@ export async function fetchProgrammeSpend(
   signal?: AbortSignal,
 ): Promise<ProgrammeSpend[]> {
   if (!isBackendConfigured) return [];
-  return apiRequest<ProgrammeSpend[]>(withParams('/stats/finance/spend', params), { signal });
+  return api.get<ProgrammeSpend[]>(withParams('/stats/finance/spend', params), { signal });
 }
 
 export async function fetchMetricProposals(signal?: AbortSignal): Promise<MetricProposal[]> {

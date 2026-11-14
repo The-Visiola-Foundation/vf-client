@@ -18,8 +18,8 @@ import type {
 import { buildRegisterEditsCsv } from '../csv';
 import { registerBlankRow } from '../registerColumns';
 import { API_BASE_URL, isBackendConfigured } from './config';
-import { apiRequest } from './client';
-import { getOrFallback, withParams } from './shared';
+import { api, apiRequest } from './client';
+import { getOrFallback, loadSnapshot, withParams } from './shared';
 
 type SchoolApiItem = {
   id?: string;
@@ -98,20 +98,54 @@ type StudentPageApiResponse = {
   totalPages?: number;
 };
 
-function normalizeStudentApiRow(row: StudentApiRow) {
+function normalizeStudentApiRow(row: StudentApiRow & Record<string, unknown>): RosterRow {
+  const ascg = row.ascgProfile as Record<string, unknown> | null;
+  const cbc = row.cbcProfile as Record<string, unknown> | null;
+
+  const fatherName =
+    (row.father as string | null) ??
+    (ascg?.fatherFirstName || ascg?.fatherLastName
+      ? [ascg.fatherFirstName, ascg.fatherLastName].filter(Boolean).join(' ')
+      : null);
+
+  const motherName =
+    (row.mother as string | null) ??
+    (ascg?.motherFirstName || ascg?.motherLastName
+      ? [ascg.motherFirstName, ascg.motherLastName].filter(Boolean).join(' ')
+      : null);
+
+  const schoolName =
+    row.school ??
+    (cbc?.school as string | null) ??
+    (ascg?.school as string | null) ??
+    null;
+
   return {
-    uid: row.id,
-    legacy: null,
-    match: 'unmatched',
-    dobFlag: false,
-    first: row.firstName ?? null,
-    last: row.lastName ?? null,
-    dob: row.dateOfBirth ?? null,
+    ...row,
+    uid: row.id ?? (row.uid as string),
+    legacy: (row.legacy as string | null) ?? null,
+    match: (row.match as string) ?? 'unmatched',
+    dobFlag: Boolean(row.dobFlag),
+    first: row.firstName ?? (row.first as string | null) ?? null,
+    last: row.lastName ?? (row.last as string | null) ?? null,
+    dob: row.dateOfBirth ?? (row.dob as string | null) ?? null,
     email: row.email ?? null,
     phone: row.phone ?? null,
-    school: row.school ?? null,
+    school: schoolName,
     country: row.country ?? null,
-
+    father: fatherName,
+    fatherPhone: (row.fatherPhone as string | null) ?? (ascg?.fatherPhone as string | null) ?? null,
+    fatherEdu: (row.fatherEdu as string | null) ?? (ascg?.fatherEducation as string | null) ?? null,
+    mother: motherName,
+    motherPhone: (row.motherPhone as string | null) ?? (ascg?.motherPhone as string | null) ?? null,
+    motherEdu: (row.motherEdu as string | null) ?? (ascg?.motherEducation as string | null) ?? null,
+    bro: (row.bro as string | null) ?? (ascg?.numberOfBrothers as string | null) ?? null,
+    sis: (row.sis as string | null) ?? (ascg?.numberOfSisters as string | null) ?? null,
+    fav: (row.fav as string | null) ?? (ascg?.favouriteSubject as string | null) ?? null,
+    diff: (row.diff as string | null) ?? (ascg?.mostDifficultSubject as string | null) ?? null,
+    car1: (row.car1 as string | null) ?? (ascg?.careerChoice1 as string | null) ?? null,
+    car2: (row.car2 as string | null) ?? (ascg?.careerChoice2 as string | null) ?? null,
+    consent: row.consent !== undefined ? Boolean(row.consent) : null,
   };
 }
 
@@ -183,7 +217,7 @@ export async function fetchStudent(uid: string, signal?: AbortSignal): Promise<R
   const path = `/students/${encodeURIComponent(uid)}`;
 
   if (isBackendConfigured) {
-    const row = await apiRequest<StudentApiRow | RosterRow | null>(path, { signal });
+    const row = await api.get<StudentApiRow | RosterRow | null>(path, { signal });
     if (!row) throw new Error(`Student ${uid} not found.`);
 
     if ('uid' in row && typeof row.uid === 'string') {
@@ -198,6 +232,69 @@ export async function fetchStudent(uid: string, signal?: AbortSignal): Promise<R
     if (!row) throw new Error(`Student ${uid} not found in the loaded snapshot`);
     return row;
   });
+}
+
+export interface UpdateStudentPayload {
+  firstName?: string | null;
+  lastName?: string | null;
+  first?: string | null;
+  last?: string | null;
+  dateOfBirth?: string | null;
+  dob?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  school?: string | null;
+  country?: string | null;
+  address?: string | null;
+  father?: string | null;
+  fatherPhone?: string | null;
+  fatherEdu?: string | null;
+  mother?: string | null;
+  motherPhone?: string | null;
+  motherEdu?: string | null;
+  sis?: string | null;
+  bro?: string | null;
+  consent?: boolean | null;
+  fav?: string | null;
+  diff?: string | null;
+  car1?: string | null;
+  car2?: string | null;
+  [key: string]: unknown;
+}
+
+/** Update student details via PATCH /students/:id */
+export async function updateStudent(
+  id: string,
+  payload: UpdateStudentPayload,
+): Promise<RosterRow> {
+  const path = `/students/${encodeURIComponent(id)}`;
+
+  if (isBackendConfigured) {
+    const body: Record<string, unknown> = {
+      ...payload,
+      firstName: payload.firstName ?? payload.first,
+      lastName: payload.lastName ?? payload.last,
+      dateOfBirth: payload.dateOfBirth ?? payload.dob,
+    };
+    const row = await api.patch<StudentApiRow | RosterRow>(path, body);
+    if ('uid' in row && typeof row.uid === 'string') {
+      return row as RosterRow;
+    }
+    return normalizeStudentApiRow(row as StudentApiRow);
+  }
+
+  // UI-only fallback
+  const s = await loadSnapshot();
+  const existing = s.roster.find((r) => r.uid === id);
+  const updated: RosterRow = {
+    ...(existing ?? { uid: id }),
+    ...payload,
+    first: payload.firstName ?? payload.first ?? existing?.first,
+    last: payload.lastName ?? payload.last ?? existing?.last,
+    dob: payload.dateOfBirth ?? payload.dob ?? existing?.dob,
+    uid: id,
+  };
+  return updated;
 }
 
 /** PATCH one editable register cell. No-op in UI-only mode. */

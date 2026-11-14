@@ -59,10 +59,6 @@ export function withParams(path: string, params: object): string {
 export async function getOrFallback<T>(
   path: string,
   init: RequestInit | undefined,
-  fallback: (snapshot: MisData) => T | Promise<T>,
 ): Promise<T> {
-  if (isBackendConfigured) {
-    return apiRequest<T>(path, init ?? {});
-  }
-  return fallback(await loadSnapshot(init?.signal ?? undefined));
+  return await apiRequest<T>(path, init ?? {});
 }

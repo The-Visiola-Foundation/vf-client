@@ -45,7 +45,7 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-4 py-10">
-      <div className="w-full max-w-[440px]">
+      <div className="w-full max-w-110">
         <div className="mb-6 flex items-center gap-3">
           <img src={logoUrl} alt="The Visiola Foundation" className="block h-12 w-auto" />
         </div>
@@ -54,10 +54,7 @@ function LoginForm() {
             Management Information System
           </p>
           <h1 className="mt-1.5 text-[22px]">Sign in</h1>
-          <p className="mt-1.5 text-[13.5px] text-ink-2">
-            Your role decides which pages you can open. Board accounts see aggregate
-            figures only.
-          </p>
+     
 
           <form onSubmit={onSubmit} className="mt-5 space-y-3.5">
             <label className="block">

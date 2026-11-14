@@ -3,7 +3,7 @@ import type { MisData } from '../../types/mis';
 import { canAccess, firstAllowedPage, isPage, roleLabel } from '../../lib/access';
 import { SKIP_AUTH } from '../../lib/api/config';
 import { useMisData } from '../../queries/useMisData';
-import { useOverview, useReach } from '../../queries/usePages';
+import { useBoardSummary, useOverview, useReach } from '../../queries/usePages';
 import { useLogout, useSession } from '../../queries/useSession';
 import { TopBar } from './TopBar';
 import { Rail } from './Rail';
@@ -107,6 +107,32 @@ function ReachRoute({ roleLabelText }: { roleLabelText: string }) {
   );
 }
 
+function BoardRoute({ roleLabelText }: { roleLabelText: string }) {
+  const query = useBoardSummary();
+  return (
+    <QueryShell
+      data={query.data}
+      isFetching={query.isFetching}
+      isError={query.isError}
+      error={query.error}
+      onRetry={() => query.refetch()}
+      generated={undefined}
+      role={roleLabelText}
+    >
+      {(d) => <Board data={d} />}
+    </QueryShell>
+  );
+}
+
+function RegisterRoute({ roleLabelText }: { roleLabelText: string }) {
+  return (
+    <>
+      <Register />
+      <Footer generated="live" roleLabel={roleLabelText} />
+    </>
+  );
+}
+
 function LegacyRoute({ page, roleLabelText }: { page: string; roleLabelText: string }) {
   const query = useMisData();
   return (
@@ -128,12 +154,8 @@ function LegacyPage({ page, data }: { page: string; data: MisData }) {
   switch (page) {
     case 'ascg':
       return <Ascg data={data} />;
-    case 'register':
-      return <Register data={data} />;
     case 'quality':
       return <Quality data={data} />;
-    case 'board':
-      return <Board data={data} />;
     default:
       return null;
   }
@@ -201,6 +223,10 @@ export function AppLayout() {
             <OverviewRoute roleLabelText={label} />
           ) : page === 'reach' ? (
             <ReachRoute roleLabelText={label} />
+          ) : page === 'register' ? (
+            <RegisterRoute roleLabelText={label} />
+          ) : page === 'board' ? (
+            <BoardRoute roleLabelText={label} />
           ) : page === 'cbc' || page === 'sc' || page === 'proposed' ? (
             <StaticRoute />
           ) : (

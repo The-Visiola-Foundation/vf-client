@@ -1,15 +1,11 @@
-import type { BoardData, MisData } from '../types/mis';
-import { fmt, pct } from '../lib/format';
+import type { BoardData } from '../types/mis';
+import { fmt } from '../lib/format';
 import { Card, EmptyState, Kpi, Notice } from '../components/ui/primitives';
 import { Eyebrow, Grid4, Lede, PageTitle, SectionHeading } from '../components/ui/layout';
-import { BarChart, StackBar } from '../components/ui/charts';
+import { StackBar } from '../components/ui/charts';
 
 export function Board({ data }: { data: BoardData }) {
-  // const t = data.ASCG.totalParticipations ?? [];
-  const p =  { assessed: 0, improved: 0, stable: 0, declined: 0 };
-  // const net = 0
-
-  console.log(data);
+  const p = { assessed: 0, improved: 0, stable: 0, declined: 0 };
 
   return (
     <>
@@ -24,7 +20,7 @@ export function Board({ data }: { data: BoardData }) {
       <Grid4>
         <Kpi
           label="Girls reached, ASCG"
-          value={14000}
+          value={fmt(data.ASCG?.uniqueStudents ?? 0)}
           sub="Unique, since 2018"
           accent="blue"
         />
@@ -42,7 +38,7 @@ export function Board({ data }: { data: BoardData }) {
         />
         <Kpi
           label="Parental consent on file"
-          value={<span className="text-vf-red">0%</span>}
+          value={<span className="text-vf-red">{data.consentRate || '0%'}</span>}
           sub="Not recorded for any student"
           accent="red"
         />
@@ -55,27 +51,11 @@ export function Board({ data }: { data: BoardData }) {
       >
         <p>
           <b>Consent is not recorded anywhere.</b> The Foundation holds dates of birth and
-          parents&rsquo; names for {fmt(data.participation)} children with no consent field
+          parents&rsquo; names for {fmt(data.ASCG?.totalParticipations ?? 0)} children with no consent field
           in any source system. This is a compliance exposure under the Nigeria Data
           Protection Act, and it is the single most urgent gap in this MIS.
         </p>
-        {/* <p style={{ marginTop: 8 }}>
-          <b>The 2025 Impact Report figures are affected by a column-ordering error.</b>{' '}
-          Corrected, the cohort&rsquo;s average GPA moved {t[0].mean.toFixed(2)} →{' '}
-          {t[1].mean.toFixed(2)} → {t[2].mean.toFixed(2)}, a net change of{' '}
-          {net >= 0 ? '+' : ''}
-          {net.toFixed(2)} rather than the +0.18 published.
-        </p> */}
       </Notice>
-
-      <SectionHeading>Reach by year</SectionHeading>
-      <Card>     {/* <BarChart
-          labelKey="year"
-          rows={data..map((r) => ({ year: r.year_joined, u: r.unique_students }))}
-          series={[{ k: 'u', label: 'Unique students', c: '#00A3DA' }]}
-        /> */}
-      </Card>
-   
 
       <SectionHeading>Academic outcome, 2025 cohort</SectionHeading>
       <Card>

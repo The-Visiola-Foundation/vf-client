@@ -2,6 +2,13 @@ export type MatchStatus = 'confirmed' | 'ambiguous' | 'unmatched';
 export type Band = 'Improved' | 'Stable' | 'Declined';
 export type Severity = 'error' | 'warning';
 
+
+export enum AcademicTerm {
+  TERM_1 = 'Term 1',
+  TERM_2 = 'Term 2',
+  TERM_3 = 'Term 3',
+}
+
 /**
  * Legacy UI-snapshot types (snake_case, derived from `mis-dashboard.json`).
  *
@@ -197,17 +204,9 @@ export interface ReachParams {
 
 /** ASCG academic page: term means, progress split, bands, subjects. */
 export interface AscgAcademicParams {
-  cohort?: number;
+  year?: number;
 }
 
-export interface AscgAcademicPayload {
-  cohort: number;
-  terms: TermRow[];
-  progress: Progress;
-  performance: Record<string, number>;
-  bandByTerm: BandByTerm;
-  subjects: SubjectRow[];
-}
 
 /* ── Coding Boot Camp ───────────────────────────────────────────────── */
 
@@ -409,4 +408,56 @@ export interface BoardData {
     description: string;
   };
   consentRate: string;
+}
+
+export interface Academic {
+  "id": number,
+  "year": number,
+  "improved": number,
+  "stable": number,
+  "declined": number
+}
+
+export interface GPA {
+  "id": number,
+  "year": number,
+  "term": string,
+  "gpa": string,
+  "numberOfRecords": number,
+  "percentage": string
+}
+
+export interface Performance {
+  "id": number,
+  "year": number,
+  "term": AcademicTerm,
+  "excellent": number,
+  "good": number,
+  "fair": number,
+  "poor": number
+}
+
+
+export interface AscgAcademicResponse {
+  "year": number,
+  "summary": {
+    "year": number,
+    "improved": number,
+    "stable": number,
+    "declined": number,
+    "netGpaChange": string,
+    "totalRecords": number,
+    "averageGpa": number,
+    "ascgParticipationCount": number
+  },
+  "records": {
+    "academics": Academic[],
+    "gpa": GPA[],
+    "grades": [],
+    "performance": Performance[]
+
+  },
+  "gpaTrend": Omit<GPA, "id" | "year">[],
+  "movementBySubject": [],
+  "performanceByTerm": Omit<Performance, "id" | "year">[],
 }

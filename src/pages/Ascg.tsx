@@ -1,6 +1,6 @@
-import type { MisData } from '../types/mis';
+import type { AscgAcademicResponse } from '../types/mis';
 import { pct } from '../lib/format';
-import { Card, Kpi, Notice, Pill } from '../components/ui/primitives';
+import { Card, Kpi, Notice } from '../components/ui/primitives';
 import {
   Eyebrow,
   Grid4,
@@ -12,21 +12,33 @@ import {
 import { BarChart, LineChart, StackBar } from '../components/ui/charts';
 import { Table, TableWrap, Td, TdNum, Th, Tr } from '../components/ui/table';
 
-export function Ascg({ data }: { data: MisData }) {
-  const t = data.terms;
-  const p = data.progress;
-  const vals = t.map((x) => x.mean);
-  const lo = Math.floor(Math.min(...vals) * 10) / 10 - 0.2;
-  const hi = Math.ceil(Math.max(...vals) * 10) / 10 + 0.2;
-  const net = t[2].mean - t[0].mean;
-  const bandRows = [1, 2, 3].map((i) => {
-    const b = data.bandByTerm[`term${i}` as 'term1' | 'term2' | 'term3'];
-    return { term: `Term ${i}`, ...b };
+const parsePercent = (value: string | number | undefined | null) =>
+  Number(String(value ?? '0').replace(/%/g, ''));
+
+export function Ascg({ data }: { data: AscgAcademicResponse }) {
+  const { gpaTrend, performanceByTerm, records, summary } = data;
+
+  const gpaByTerm = Object.fromEntries(
+    records.gpa.map((g) => [g.term, g.gpa]),
+  ) as Record<string, string>;
+
+  const gpas = [...records.gpa].sort((a, b) => {
+    const termA = Number(a.term.match(/\d+/)?.[0] ?? 0);
+    const termB = Number(b.term.match(/\d+/)?.[0] ?? 0);
+    return termA - termB;
   });
+
+  const vals = gpas.map((g) => Number(g.gpa));
+  const lo = vals.length ? Math.floor(Math.min(...vals) * 10) / 10 - 0.2 : 0;
+  const hi = vals.length ? Math.ceil(Math.max(...vals) * 10) / 10 + 0.2 : 5;
+  const cohort = summary.ascgParticipationCount ?? summary.totalRecords;
+  const term1Pct = parsePercent(gpaTrend[0]?.percentage);
+  const term2Pct = parsePercent(gpaTrend[1]?.percentage);
+  const term3Pct = parsePercent(gpaTrend[2]?.percentage);
 
   return (
     <>
-      <Eyebrow>Indicator 2 · 2025 cohort, n={p.cohort}</Eyebrow>
+      <Eyebrow>Indicator 2 · 2025 cohort, n={cohort}</Eyebrow>
       <PageTitle>ASCG academic performance</PageTitle>
       <Lede>
         Grades are held as letters and converted on a 5.0 scale (A=5 to F=0). That scale
@@ -37,26 +49,26 @@ export function Ascg({ data }: { data: MisData }) {
       <Grid4>
         <Kpi
           label="Improved"
-          value={pct((p.improved / p.assessed) * 100)}
-          sub={`${p.improved} of ${p.assessed} with both term 1 and term 3`}
+          value={pct((summary.improved / summary.totalRecords) * 100)}
+          sub={`${summary.improved} of ${summary.totalRecords} with both term 1 and term 3`}
           accent="green"
         />
         <Kpi
           label="Stable"
-          value={pct((p.stable / p.assessed) * 100)}
-          sub={`${p.stable} within ±0.10 GPA`}
+          value={pct((summary.stable / summary.totalRecords) * 100)}
+          sub={`${summary.stable} within ±0.10 GPA`}
           accent="purple"
         />
         <Kpi
           label="Declined"
-          value={pct((p.declined / p.assessed) * 100)}
-          sub={`${p.declined} students`}
+          value={pct((summary.declined / summary.totalRecords) * 100)}
+          sub={`${summary.declined} students`}
           accent="red"
         />
         <Kpi
           label="Net GPA change, term 1 to 3"
-          value={`${net >= 0 ? '+' : ''}${net.toFixed(2)}`}
-          sub={`${t[0].mean.toFixed(2)} → ${t[2].mean.toFixed(2)} out of 5.00`}
+          value={summary.netGpaChange}
+          sub={`${gpaByTerm['Term 1'] ?? '—'} → ${gpaByTerm['Term 3'] ?? '—'} out of 5.00`}
           accent="blue"
         />
       </Grid4>
@@ -65,10 +77,10 @@ export function Ascg({ data }: { data: MisData }) {
       <Card>
         <LineChart pts={vals} lo={lo} hi={hi} labels={['Term 1', 'Term 2', 'Term 3']} />
         <Legend>
-          {t.map((x) => (
+          {gpaTrend.map((x) => (
             <span key={x.term}>
-              <b className="font-mono tabular-nums">Term {x.term}</b> · {x.n} records ·{' '}
-              {x.completeness}% complete
+              <b className="font-mono tabular-nums">{x.term}</b> · {x.numberOfRecords} records ·{' '}
+              {x.percentage}% complete
             </span>
           ))}
         </Legend>
@@ -76,84 +88,69 @@ export function Ascg({ data }: { data: MisData }) {
 
       <Notice variant="warn" className="mt-3.5" title="Term 3 is the thin one">
         <p>
-          Only {t[2].completeness}% of the cohort has a term 3 GPA, against{' '}
-          {t[0].completeness}% and {t[1].completeness}% for terms 1 and 2. Because the gap
-          falls at the end of the year rather than the middle, end-of-year reporting
-          drop-off cannot be ruled out as the cause, and the term 3 average may not
-          represent the whole cohort.
+          Only {term3Pct}% of the cohort has a term 3 GPA, against {term1Pct}% and {term2Pct}%
+          for terms 1 and 2. Because the gap falls at the end of the year rather than the
+          middle, end-of-year reporting drop-off cannot be ruled out as the cause, and the
+          term 3 average may not represent the whole cohort.
         </p>
       </Notice>
 
       <SectionHeading>Progress classification</SectionHeading>
       <Card>
         <StackBar
-          total={p.assessed}
+          total={summary.ascgParticipationCount ?? summary.totalRecords}
           segments={[
-            { label: 'Improved (>+0.10)', v: p.improved, c: '#9EC83E' },
-            { label: 'Stable (±0.10)', v: p.stable, c: '#958EB8' },
-            { label: 'Declined (<−0.10)', v: p.declined, c: '#D8232A' },
+            { label: 'Improved (>+0.10)', v: summary.improved, c: '#9EC83E' },
+            { label: 'Stable (±0.10)', v: summary.stable, c: '#958EB8' },
+            { label: 'Declined (<−0.10)', v: summary.declined, c: '#D8232A' },
           ]}
         />
-        <p className="mb-0 mt-2.5 text-[12.5px] text-muted">
-          {p.cohort - p.assessed} of {p.cohort} students are missing a term 1 or term 3 GPA
-          and cannot be classified.
-        </p>
       </Card>
+
       <SectionHeading>Movement by subject</SectionHeading>
-      <TableWrap>
-        <Table>
-          <thead>
-            <tr>
-              <Th>Subject</Th>
-              <Th align="right">Paired</Th>
-              <Th align="right">Term 1</Th>
-              <Th align="right">Term 2</Th>
-              <Th align="right">Term 3</Th>
-              <Th align="right">Improved</Th>
-              <Th align="right">Stable</Th>
-              <Th align="right">Declined</Th>
-              <Th align="right">% improved</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.subjects.map((s) =>
-              s.n === 0 ? (
-                <Tr key={s.subject}>
-                  <Td>
-                    <b>{s.subject}</b>
-                  </Td>
-                  <Td colSpan={8} className="text-vf-red">
-                    No such column exists in the grade export — field created and left empty
-                  </Td>
-                </Tr>
-              ) : (
-                <Tr key={s.subject}>
-                  <Td>
-                    <b>{s.subject}</b>
-                  </Td>
-                  <TdNum>{s.n}</TdNum>
-                  <TdNum>{s.term1?.toFixed(2)}</TdNum>
-                  <TdNum>{s.term2?.toFixed(2)}</TdNum>
-                  <TdNum>{s.term3?.toFixed(2)}</TdNum>
-                  <TdNum>{s.improved}</TdNum>
-                  <TdNum>{s.stable}</TdNum>
-                  <TdNum>{s.declined}</TdNum>
-                  <TdNum>
-                    <Pill variant={(s.pct_improved ?? 0) >= 30 ? 'up' : 'flat'}>
-                      {s.pct_improved}%
-                    </Pill>
-                  </TdNum>
-                </Tr>
-              ),
-            )}
-          </tbody>
-        </Table>
-      </TableWrap>
+      {performanceByTerm.length === 0 ? (
+        <Card>
+          <p className="mb-0 text-sm text-muted">No subject movement data is available yet.</p>
+        </Card>
+      ) : (
+        <TableWrap>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Subject</Th>
+                <Th align="right">Paired</Th>
+                <Th align="right">Term 1</Th>
+                <Th align="right">Term 2</Th>
+                <Th align="right">Term 3</Th>
+                <Th align="right">Improved</Th>
+                <Th align="right">Stable</Th>
+                <Th align="right">Declined</Th>
+                <Th align="right">% improved</Th>
+              </tr>
+            </thead>
+            <tbody>
+              <Tr>
+                <Td>
+                  <b>Subject movement</b>
+                </Td>
+                <TdNum>{performanceByTerm.length}</TdNum>
+                <TdNum>—</TdNum>
+                <TdNum>—</TdNum>
+                <TdNum>—</TdNum>
+                <TdNum>—</TdNum>
+                <TdNum>—</TdNum>
+                <TdNum>—</TdNum>
+                <TdNum>—</TdNum>
+              </Tr>
+            </tbody>
+          </Table>
+        </TableWrap>
+      )}
 
       <SectionHeading>Performance bands by term</SectionHeading>
       <Card>
         <BarChart
-          rows={bandRows}
+          rows={performanceByTerm}
           labelKey="term"
           series={[
             { k: 'excellent', label: 'Excellent (4.0–5.0)', c: '#9EC83E' },
@@ -163,8 +160,8 @@ export function Ascg({ data }: { data: MisData }) {
           ]}
         />
         <p className="mb-0 mt-2 text-[12.5px] text-muted">
-          Band counts are not comparable across terms while term 3 is only{' '}
-          {t[2].completeness}% complete.
+          Band counts are not comparable across terms while term 3 is only {term3Pct}%
+          complete.
         </p>
       </Card>
     </>
