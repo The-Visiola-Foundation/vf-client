@@ -25,7 +25,7 @@ export function Lede({
   className?: string;
 }) {
   return (
-    <p className={`mb-[22px] mt-1.5 max-w-[68ch] text-ink-2 ${className ?? ''}`}>
+    <p className={`mb-5.5 mt-1.5 max-w-[68ch] text-ink-2 ${className ?? ''}`}>
       {children}
     </p>
   );
@@ -33,11 +33,17 @@ export function Lede({
 
 export function SectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-3 mt-8 flex items-center gap-2.5 text-[15px] font-bold tracking-normal">
+    <h3 className="mb-3 mt-8 flex items-center gap-2.5 text-[15px] font-bold tracking-normal">
       {children}
       <span className="h-px flex-1 bg-line" />
-    </h2>
+    </h3>
   );
+}
+
+export function Heading({ children }: { children: ReactNode }) {
+  return (<h2 className="mb-3 mt-8 flex items-center gap-2.5 text-[20px] font-bold tracking-normal">
+    {children}
+  </h2>)
 }
 
 /* ── Layout helpers ────────────────────────────────────────────────── */

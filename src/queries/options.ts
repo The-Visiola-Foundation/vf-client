@@ -77,10 +77,10 @@ export const queryOptionFactories = {
       queryFn: ({ signal }) => fetchAscgAcademic(params, signal),
     }),
 
-  cbcSummary: () =>
+  cbcSummary: (params: AscgAcademicParams ={}) =>
     queryOptions({
-      queryKey: queryKeys.cbcSummary,
-      queryFn: ({ signal }) => fetchCbcSummary(signal),
+      queryKey: queryKeys.cbcSummary(params),
+      queryFn: ({ signal }) => fetchCbcSummary(params, signal),
     }),
 
   cbcGraduates: (params: CbcGraduateParams = {}) =>
@@ -91,7 +91,7 @@ export const queryOptionFactories = {
 
   cbcOutcomes: (params: CbcOutcomeParams = {}) =>
     queryOptions({
-      queryKey: queryKeys.cbcOutcomes(params),
+      queryKey: queryKeys.cbcOutcomes(params as { months_after?: number }),
       queryFn: ({ signal }) => fetchCbcOutcomes(params, signal),
     }),
 

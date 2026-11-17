@@ -1,9 +1,15 @@
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { MisData } from '../../types/mis';
 import { canAccess, firstAllowedPage, isPage, roleLabel } from '../../lib/access';
 import { SKIP_AUTH } from '../../lib/api/config';
 import { useMisData } from '../../queries/useMisData';
-import { useBoardSummary, useOverview, useReach } from '../../queries/usePages';
+import {
+  useAscgAcademic,
+  useBoardSummary,
+  useCbcOutcomes,
+  useOverview,
+  useReach,
+} from '../../queries/usePages';
 import { useLogout, useSession } from '../../queries/useSession';
 import { TopBar } from './TopBar';
 import { Rail } from './Rail';
@@ -124,6 +130,96 @@ function BoardRoute({ roleLabelText }: { roleLabelText: string }) {
   );
 }
 
+const ASCG_YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+const SC_YEARS = [2017, ...ASCG_YEARS]
+
+function AscgRoute({ roleLabelText }: { roleLabelText: string }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawYear = searchParams.get('year');
+  const year = rawYear !== null && rawYear !== '' && Number.isFinite(Number(rawYear))
+    ? Number(rawYear)
+    : 2025;
+  const query = useAscgAcademic({ year });
+  const changeYear = (nextYear: number) => {
+    setSearchParams({ year: String(nextYear) }, { replace: true });
+  };
+
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-3 text-sm text-subtle">
+          <span className="font-medium">Academic year</span>
+          <select
+            value={year}
+            onChange={(e) => changeYear(Number(e.target.value))}
+            className="bg-paper border border-black/10 rounded-md px-2 py-1 font-mono text-sm"
+          >
+            {ASCG_YEARS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <QueryShell
+        data={query.data}
+        isFetching={query.isFetching}
+        isError={query.isError}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        generated={undefined}
+        role={roleLabelText}
+      >
+        {(d) => <Ascg data={d} year={year} />}
+      </QueryShell>
+    </>
+  );
+}
+
+
+function CbcRoute({ roleLabelText }: { roleLabelText: string }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawYear = searchParams.get('year');
+  const year = rawYear !== null && rawYear !== '' && Number.isFinite(Number(rawYear))
+    ? Number(rawYear)
+    : 0;
+  const query = useCbcOutcomes({ year });
+  const changeYear = (nextYear: number) => {
+    setSearchParams({ year: String(nextYear) }, { replace: true });
+  };
+
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-3 text-sm text-subtle">
+          <span className="font-medium">Year</span>
+          <select
+            value={year}
+            onChange={(e) => changeYear(Number(e.target.value))}
+            className="bg-paper border border-black/10 rounded-md px-2 py-1 font-mono text-sm"
+          >
+            <option value={0}>All Years</option>
+            {ASCG_YEARS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <QueryShell
+        data={query.data}
+        isFetching={query.isFetching}
+        isError={query.isError}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        generated={undefined}
+        role={roleLabelText}
+      >
+        {(d) => <Cbc data={d} year={year} />}
+      </QueryShell>
+    </>
+  );
+}
+
+
 function RegisterRoute({ roleLabelText }: { roleLabelText: string }) {
   return (
     <>
@@ -132,6 +228,50 @@ function RegisterRoute({ roleLabelText }: { roleLabelText: string }) {
     </>
   );
 }
+
+function ScRoute({ roleLabelText }: { roleLabelText: string }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawYear = searchParams.get('year');
+  const year = rawYear !== null && rawYear !== '' && Number.isFinite(Number(rawYear))
+    ? Number(rawYear)
+    : 0;
+  const query = useCbcOutcomes({ year });
+  const changeYear = (nextYear: number) => {
+    setSearchParams({ year: String(nextYear) }, { replace: true });
+  };
+
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-3 text-sm text-subtle">
+          <span className="font-medium">Year</span>
+          <select
+            value={year}
+            onChange={(e) => changeYear(Number(e.target.value))}
+            className="bg-paper border border-black/10 rounded-md px-2 py-1 font-mono text-sm"
+          >
+            <option value={0}>All Years</option>
+            {SC_YEARS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <QueryShell
+        data={query.data}
+        isFetching={query.isFetching}
+        isError={query.isError}
+        error={query.error}
+        onRetry={() => query.refetch()}
+        generated={undefined}
+        role={roleLabelText}
+      >
+        {(d) => <SC data={d} year={year} />}
+      </QueryShell>
+    </>
+  );
+}
+
 
 function LegacyRoute({ page, roleLabelText }: { page: string; roleLabelText: string }) {
   const query = useMisData();
@@ -165,7 +305,7 @@ function StaticRoute() {
   const { page } = useParams();
   switch (page) {
     case 'cbc':
-      return <Cbc />;
+      return <Cbc data={{ year: 0, total: 0, uniqueCount: 0, tracks: [] }} year={0} />;
     case 'sc':
       return <SC />;
     default:
@@ -227,7 +367,11 @@ export function AppLayout() {
             <RegisterRoute roleLabelText={label} />
           ) : page === 'board' ? (
             <BoardRoute roleLabelText={label} />
-          ) : page === 'cbc' || page === 'sc' || page === 'proposed' ? (
+          ) : page === 'ascg' ? (
+            <AscgRoute roleLabelText={label} />
+          ) : page === 'cbc' ? (
+            <CbcRoute roleLabelText={label} />
+          ) : page === 'sc' || page === 'proposed' ? (
             <StaticRoute />
           ) : (
             <LegacyRoute page={page} roleLabelText={label} />

@@ -1,15 +1,14 @@
 /**
  * ASCG academic resource. Term means, progress split, bands, subjects.
  *
- *   GET /mis/ascg/academic?cohort= -> AscgAcademicPayload
+ *   GET /academics?year= -> AscgAcademicResponse
  */
 import type { AscgAcademicParams, AscgAcademicResponse } from '../../types/mis';
 import { getOrFallback, withParams } from './shared';
 
 export async function fetchAscgAcademic(
-  params: AscgAcademicParams = {},
+  params: AscgAcademicParams = { year: 2025 },
   signal?: AbortSignal,
 ): Promise<AscgAcademicResponse> {
-  return getOrFallback(withParams('/academics', params), { signal }, (s) => (s as unknown) as AscgAcademicResponse
-);
+  return getOrFallback(withParams('/academics', params), { signal });
 }

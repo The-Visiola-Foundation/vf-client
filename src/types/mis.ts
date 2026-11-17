@@ -252,7 +252,7 @@ export interface CbcGraduateParams extends PageParams {
 }
 
 export interface CbcOutcomeParams {
-  months_after?: 6 | 12;
+  year?: number;
 }
 
 export type NewCbcGraduate = Partial<Omit<CbcGraduate, 'id'>>;
@@ -382,23 +382,20 @@ export interface BoardData {
     since: number | null;
     program: string;
     description: string;
+    schools: number;
+    academics: Academic[]
   };
-  OUTREACH: {
-    uniqueStudents: number;
-    totalParticipations: number;
-    returningParticipations: number;
-    since: number | null;
-    program: string;
-    description: string;
-  };
+
   CBC: {
     uniqueStudents: number;
     totalParticipations: number;
     returningParticipations: number;
     since: number | null;
+    trackCount: number;
     program: string;
     description: string;
   };
+
   SC: {
     uniqueStudents: number;
     totalParticipations: number;
@@ -408,6 +405,7 @@ export interface BoardData {
     description: string;
   };
   consentRate: string;
+  studentCountByYear: { year: number, count: string }[];
 }
 
 export interface Academic {
@@ -437,6 +435,18 @@ export interface Performance {
   "poor": number
 }
 
+export interface Grade {
+  id: number,
+  year: number,
+  subject: string,
+  paired: number,
+  term1: number,
+  term2: number,
+  term3: number,
+  improved: number,
+  stable: number,
+  declined: number
+}
 
 export interface AscgAcademicResponse {
   "year": number,
@@ -448,16 +458,33 @@ export interface AscgAcademicResponse {
     "netGpaChange": string,
     "totalRecords": number,
     "averageGpa": number,
-    "ascgParticipationCount": number
+    "totalParticipation": number,
+    "uniqueParticipation": number,
+    "returningParticipation": number
   },
   "records": {
     "academics": Academic[],
     "gpa": GPA[],
-    "grades": [],
+    "grades": Grade[],
     "performance": Performance[]
 
   },
   "gpaTrend": Omit<GPA, "id" | "year">[],
   "movementBySubject": [],
   "performanceByTerm": Omit<Performance, "id" | "year">[],
+}
+
+export enum Cohort {
+  ONE = 'one',
+  TWO = 'two',
+  WEEKEND = 'weekend'
+}
+
+
+export interface CbcResponse {
+  year: number;
+  total: number,
+  uniqueCount: number,
+  tracks: { trackId: string; trackName: string; studentCount: number }[];
+  cohortsBreakdown?: { cohort: Cohort; studentCount: number }[];
 }

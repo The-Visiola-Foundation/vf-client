@@ -12,11 +12,13 @@
  *   POST /mis/cbc/outcomes             {…}                -> CbcOutcome
  */
 import type {
+  AscgAcademicParams,
   CbcGraduate,
   CbcGraduateParams,
   CbcGraduatePatch,
   CbcOutcome,
   CbcOutcomeParams,
+  CbcResponse,
   CbcSummary,
   NewCbcGraduate,
   NewCbcOutcome,
@@ -39,9 +41,9 @@ const EMPTY_SUMMARY: CbcSummary = {
   response_rate: null,
 };
 
-export async function fetchCbcSummary(signal?: AbortSignal): Promise<CbcSummary> {
+export async function fetchCbcSummary(params: AscgAcademicParams, signal?: AbortSignal): Promise<CbcSummary> {
   if (!isBackendConfigured) return EMPTY_SUMMARY;
-  return apiRequest<CbcSummary>('/mis/cbc/summary', { signal });
+  return apiRequest<CbcSummary>(withParams('/cbc-participation', params), { signal });
 }
 
 export async function fetchCbcGraduates(
@@ -75,9 +77,8 @@ export async function patchCbcGraduate(id: string, patch: CbcGraduatePatch): Pro
 export async function fetchCbcOutcomes(
   params: CbcOutcomeParams = {},
   signal?: AbortSignal,
-): Promise<CbcOutcome[]> {
-  if (!isBackendConfigured) return [];
-  return apiRequest<CbcOutcome[]>(withParams('/mis/cbc/outcomes', params), { signal });
+): Promise<CbcResponse> {
+  return apiRequest<CbcResponse>(withParams('/cbc-participation', params), { signal });
 }
 
 export async function createCbcOutcome(input: NewCbcOutcome): Promise<CbcOutcome> {

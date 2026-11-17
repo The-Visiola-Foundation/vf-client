@@ -1,4 +1,4 @@
-import { Blank, EmptyState, Kpi, Notice, Pill } from '../components/ui/primitives';
+import { Card, Kpi } from '../components/ui/primitives';
 import {
   Eyebrow,
   Grid4,
@@ -6,112 +6,183 @@ import {
   PageTitle,
   SectionHeading,
 } from '../components/ui/layout';
-import { Table, TableWrap, Td, Th, Tr } from '../components/ui/table';
+import { BarChart } from '../components/ui/charts';
+import { Table, TableWrap, Td, TdNum, Th, Tr } from '../components/ui/table';
+import type { CbcResponse } from '../types/mis';
 
-const FIELDS: Array<[string, string, string]> = [
-  ['Prior tech education', 'cbc_profile.prior_tech_education', 'Awaiting data'],
-  ['Prior tech experience', 'cbc_profile.prior_tech_experience', 'Awaiting data'],
-  ['Track (full-stack, data, UI/UX)', 'cbc_profile.track', 'Awaiting data'],
-  ['Completed programme', 'cbc_profile.completed_programme', 'Awaiting data'],
-  ['Outcome at 6 months', 'cbc_outcome.outcome (months_after=6)', 'Awaiting data'],
-  ['Outcome at 12 months', 'cbc_outcome.outcome (months_after=12)', 'Awaiting data'],
-  ['Role title', 'cbc_outcome.role_title', 'Awaiting data'],
-  ['Company', 'cbc_outcome.company', 'Awaiting data'],
-  ['Industry', 'cbc_outcome.industry', 'Awaiting data'],
-  ['Tech engagement level', 'cbc_outcome.tech_engagement', 'Awaiting data'],
-];
+const fmt = (value: number | null | undefined) =>
+  Number.isFinite(value ?? Number.NaN) ? (value ?? 0).toLocaleString() : '0';
 
-export function Cbc() {
+const pct = (count: number, total: number) => (total > 0 ? (count / total) * 100 : 0);
+
+const yearLabel = (year: number) => (year === 0 ? 'All Years' : String(year));
+
+
+const formatCohortLabel = (cohort: string | undefined | null) => {
+  const value = String(cohort ?? '').trim().toLowerCase();
+  if (!value) return 'Cohort';
+  const label = value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  return label ? `Cohort ${label}` : 'Cohort';
+};
+
+const cohortSortRank = (cohort: string | undefined | null) => {
+  const value = String(cohort ?? '').trim().toLowerCase();
+  if (!value) return 99;
+  if (value.includes('cohort one') || value.includes('one')) return 0;
+  if (value.includes('cohort two') || value.includes('two')) return 1;
+  if (value.includes('weekend')) return 2;
+  return 99;
+};
+
+export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
+  const tracks = Array.isArray(data?.tracks) ? data.tracks : [];
+  const total = Number.isFinite(data?.total) ? Number(data.total) : 0;
+  const uniqueCount = Number.isFinite(data?.uniqueCount) ? Number(data.uniqueCount) : 0;
+  const cohortsBreakdown = Array.isArray(data?.cohortsBreakdown) ? data.cohortsBreakdown : [];
+
+  const orderedTracks = [...tracks]
+    .filter((track) => track && Number.isFinite(Number(track.studentCount)))
+    .map((track) => ({
+      ...track,
+      studentCount: Number(track.studentCount) || 0,
+    }))
+    .sort((a, b) => b.studentCount - a.studentCount);
+
+
+  const orderedCohorts = [...cohortsBreakdown]
+    .filter((cohort) => cohort && Number.isFinite(Number(cohort.studentCount)))
+    .map((cohort) => ({
+      ...cohort,
+      studentCount: Number(cohort.studentCount) || 0,
+    }))
+    .sort((a, b) => {
+      const rankDiff = cohortSortRank(a.cohort) - cohortSortRank(b.cohort);
+      if (rankDiff !== 0) return rankDiff;
+      return b.studentCount - a.studentCount;
+    });
+
+  const cohortRows = orderedCohorts.map((cohort) => ({
+    label: formatCohortLabel(cohort.cohort),
+    value: cohort.studentCount,
+  }));
+
+  const showCohortSection = year !== 0;
+
   return (
     <>
-      <Eyebrow>Indicator 3</Eyebrow>
-      <PageTitle>Coding Boot Camp</PageTitle>
+      <Eyebrow>Coding Boot Camp</Eyebrow>
+      <PageTitle>CBC Program Overview</PageTitle>
       <Lede>
-        The structure below is live and will populate the moment graduate records are
-        loaded. No CBC data was supplied, so every figure is empty rather than carried over
-        from the Impact Data Brief.
+        This dashboard presents participation across CBC learning tracks and shows the
+        distribution of students across each pathway for {yearLabel(year)}.
       </Lede>
 
-      <EmptyState className="mb-5" title="No Coding Boot Camp records loaded">
-        The database tables <span className="font-mono">cbc_profile</span> and{' '}
-        <span className="font-mono">cbc_outcome</span> exist and are ready. Load graduate
-        records to fill this page.
-      </EmptyState>
-
+      <SectionHeading>Program Participation</SectionHeading>
       <Grid4>
-        <Kpi label="Completed the programme" value={<Blank />} sub="Of those enrolled" />
         <Kpi
-          label="Employed at 6 months"
-          value={<Blank />}
-          sub="Full-time, part-time, freelance or internship"
+          label="Total Participation"
+          value={fmt(total)}
+          sub="Overall enrolments across all tracks"
+          accent="blue"
         />
         <Kpi
-          label="Employed at 12 months"
-          value={<Blank />}
-          sub="Full-time, part-time, freelance or internship"
+          label="Unique Students"
+          value={fmt(uniqueCount)}
+          sub="Students counted once across the programme"
+          accent="green"
         />
         <Kpi
-          label="Unemployed at 12 months"
-          value={<Blank />}
-          sub="The Board-facing figure"
-          accent="red"
-        />
-        <Kpi
-          label="In further education"
-          value={<Blank />}
-          sub="Measured at both points"
-        />
-        <Kpi
-          label="Fully engaged in tech"
-          value={<Blank />}
-          sub="Tech Engagement Framework"
-        />
-        <Kpi
-          label="Partially engaged in tech"
-          value={<Blank />}
-          sub="Tech-enabled and hybrid roles"
-        />
-        <Kpi
-          label="Median time to first role"
-          value={<Blank />}
-          sub="Months from graduation"
+          label="Number of Learning Tracks"
+          value={fmt(orderedTracks.length)}
+          sub="Distinct CBC tracks in the dataset"
+          accent="purple"
         />
       </Grid4>
 
-      <SectionHeading>What each graduate record needs to carry</SectionHeading>
-      <TableWrap>
-        <Table>
-          <thead>
-            <tr>
-              <Th>Field</Th>
-              <Th>Held in</Th>
-              <Th>Status</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {FIELDS.map((r) => (
-              <Tr key={r[0]}>
-                <Td>
-                  <b>{r[0]}</b>
-                </Td>
-                <Td className="font-mono text-[12px]">{r[1]}</Td>
-                <Td>
-                  <Pill variant="amb">{r[2]}</Pill>
-                </Td>
-              </Tr>
-            ))}
-          </tbody>
-        </Table>
-      </TableWrap>
 
-      <Notice variant="info" className="mt-4" title="One caution carried over from the brief">
-        <p>
-          The published CBC outcomes rest on 138 responses from 653 graduates, a 21%
-          response rate, and graduates who found work are more likely to answer a survey
-          than those who did not. Recording the response rate alongside every outcome
-          figure keeps that visible; the field is built into the outcome table.
-        </p>
-      </Notice>
+      <SectionHeading>Track Summary</SectionHeading>
+
+      {orderedTracks.length === 0 ? (
+        <Card>
+          <p className="mb-0 text-sm text-muted">
+            There are no learning tracks to summarise for this filter.
+          </p>
+        </Card>
+      ) : (
+        <TableWrap>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Track</Th>
+                <Th align="right">Participants</Th>
+                <Th align="right">% of total</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {orderedTracks.map((track) => {
+                const share = pct(track.studentCount, total);
+                return (
+                  <Tr key={track.trackId}>
+                    <Td>{track.trackName}</Td>
+                    <TdNum>{fmt(track.studentCount)}</TdNum>
+                    <TdNum>{share.toFixed(1)}%</TdNum>
+                  </Tr>
+                );
+              })}
+              <Tr className="bg-[#F7F8F6] font-semibold">
+                <Td>
+                  <b>Total</b>
+                </Td>
+                <TdNum>{fmt(total)}</TdNum>
+                <TdNum>100.0%</TdNum>
+              </Tr>
+            </tbody>
+          </Table>
+        </TableWrap>
+      )}
+
+      {showCohortSection && (
+        <>
+          <SectionHeading>Participation by Cohort</SectionHeading>
+
+          {orderedCohorts.length === 0 || total === 0 ? (
+            <Card>
+              <p className="mb-0 text-sm text-muted">
+                No cohort participation data is available for {yearLabel(year)} yet.
+              </p>
+            </Card>
+          ) : (
+            <Card>
+              <BarChart
+                rows={cohortRows}
+                labelKey="label"
+                series={[{ k: 'value', label: 'Participation', c: '#958EB8' }]}
+              />
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {orderedCohorts.map((cohort) => {
+                  const share = pct(cohort.studentCount, total);
+                  return (
+                    <div
+                      key={`${cohort.cohort ?? 'cohort'}-${cohort.studentCount}`}
+                      className="flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2"
+                    >
+                      <span className="text-sm text-ink">{formatCohortLabel(cohort.cohort)}</span>
+                      <span className="font-mono text-sm tabular-nums">
+                        {fmt(cohort.studentCount)} · {share.toFixed(1)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+        </>
+      )}
     </>
   );
 }

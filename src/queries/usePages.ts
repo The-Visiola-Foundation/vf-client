@@ -21,8 +21,8 @@ export function useAscgAcademic(params: AscgAcademicParams = {}) {
   return useQuery(queryOptionFactories.ascgAcademic(params));
 }
 
-export function useCbcSummary() {
-  return useQuery(queryOptionFactories.cbcSummary());
+export function useCbcSummary(params: AscgAcademicParams = {}) {
+  return useQuery(queryOptionFactories.cbcSummary(params));
 }
 
 export function useCbcGraduates(params: CbcGraduateParams = {}) {

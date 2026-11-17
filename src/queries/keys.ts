@@ -13,9 +13,9 @@ export const queryKeys = {
   reach: (params?: Record<string, string | number | undefined>) =>
     ['mis', 'reach', params ?? {}] as const,
   /** ASCG academic aggregates for a cohort. */
-  ascg: (params?: { cohort?: number }) => ['mis', 'ascg', params ?? {}] as const,
+  ascg: (params?: { year?: number }) => ['ascg', params ?? {}] as const,
   /** CBC summary (empty until graduate records exist). */
-  cbcSummary: ['mis', 'cbc', 'summary'] as const,
+  cbcSummary:(params?: {year?: number}) => ['cbc', params ?? {}] as const,
   /** CBC graduates list. */
   cbcGraduates: (params?: Record<string, string | number | undefined>) =>
     ['mis', 'cbc', 'graduates', params ?? {}] as const,
