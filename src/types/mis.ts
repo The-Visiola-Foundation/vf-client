@@ -488,3 +488,29 @@ export interface CbcResponse {
   tracks: { trackId: string; trackName: string; studentCount: number }[];
   cohortsBreakdown?: { cohort: Cohort; studentCount: number }[];
 }
+
+type campType = 'ssc' | 'dsc'
+
+export interface Metric {
+  id: number;
+  year: number;
+  type: campType;
+  metricName: string;
+  category: "Core" | "Camp-specific";
+  baselineScore: string;
+  endlineScore: string;
+  change: string;
+  pValue: string;
+  count: number;
+  improved: number;
+  stable: number;
+  declined: number;
+}
+
+export interface SCResponse {
+  year: number;
+  total: number;
+  sscCount: number;
+  dscCount: number;
+  metrics: Metric[]
+}

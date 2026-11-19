@@ -9,6 +9,8 @@ import {
   useCbcOutcomes,
   useOverview,
   useReach,
+  useSscCamps,
+  useSscCompare,
 } from '../../queries/usePages';
 import { useLogout, useSession } from '../../queries/useSession';
 import { TopBar } from './TopBar';
@@ -130,8 +132,8 @@ function BoardRoute({ roleLabelText }: { roleLabelText: string }) {
   );
 }
 
-const ASCG_YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
-const SC_YEARS = [2017, ...ASCG_YEARS]
+export const ASCG_YEARS = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+export const SC_YEARS = [2017, ...ASCG_YEARS]
 
 function AscgRoute({ roleLabelText }: { roleLabelText: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -235,7 +237,7 @@ function ScRoute({ roleLabelText }: { roleLabelText: string }) {
   const year = rawYear !== null && rawYear !== '' && Number.isFinite(Number(rawYear))
     ? Number(rawYear)
     : 0;
-  const query = useCbcOutcomes({ year });
+  const query = useSscCamps({ year });
   const changeYear = (nextYear: number) => {
     setSearchParams({ year: String(nextYear) }, { replace: true });
   };
@@ -371,9 +373,10 @@ export function AppLayout() {
             <AscgRoute roleLabelText={label} />
           ) : page === 'cbc' ? (
             <CbcRoute roleLabelText={label} />
-          ) : page === 'sc' || page === 'proposed' ? (
-            <StaticRoute />
-          ) : (
+          ) : page === 'sc' ? (
+            < ScRoute roleLabelText={label} />) : page === 'proposed' ? (
+              <StaticRoute />
+            ) : (
             <LegacyRoute page={page} roleLabelText={label} />
           )}
         </main>

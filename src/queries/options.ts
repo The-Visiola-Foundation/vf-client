@@ -95,7 +95,7 @@ export const queryOptionFactories = {
       queryFn: ({ signal }) => fetchCbcOutcomes(params, signal),
     }),
 
-  qualitySummary: () =>
+  qualitySummary: () => 
     queryOptions({
       queryKey: queryKeys.qualitySummary,
       queryFn: ({ signal }) => fetchQualitySummary(signal),
@@ -119,10 +119,10 @@ export const queryOptionFactories = {
       queryFn: ({ signal }) => fetchMetricProposals(signal),
     }),
 
-  sscCamps: () =>
+  sscCamps: (params={}) =>
     queryOptions({
-      queryKey: queryKeys.sscCamps,
-      queryFn: ({ signal }) => fetchSscCamps(signal),
+      queryKey: queryKeys.sscCamps(params),
+      queryFn: ({ signal }) => fetchSscCamps(params, signal),
     }),
 
   sscImpact: (campId: string) =>

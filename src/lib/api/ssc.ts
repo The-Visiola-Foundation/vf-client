@@ -12,12 +12,14 @@
  * configured the same functions hit the real paths. Components and hooks never
  * branch on the mode — they just call these functions.
  */
+import { SCResponse } from '../../types/mis';
 import type {
   SscCampsResponse,
   SscCompareResponse,
   SscImpactPayload,
   SscYearRollup,
 } from '../../types/ssc';
+import { apiRequest } from './client';
 import { getOrFallback, withParams } from './shared';
 
 const EMPTY_CAMPS: SscCampsResponse = [];
@@ -26,11 +28,11 @@ const EMPTY_ROLLUP: SscYearRollup | null = null;
 const EMPTY_COMPARE: SscCompareResponse = [];
 
 /** All camps, with a `hasResults` flag the UI uses to pick its view. */
-export async function fetchSscCamps(signal?: AbortSignal): Promise<SscCampsResponse> {
-  return getOrFallback<SscCampsResponse>(
-    '/ssc/camps',
-    { signal },
-    () => EMPTY_CAMPS,
+export async function fetchSscCamps(
+  params: {} = {},
+  signal?: AbortSignal): Promise<SCResponse> {
+  return apiRequest<SCResponse>(withParams('/sc-participation', params),
+    { signal }
   );
 }
 
@@ -41,8 +43,7 @@ export async function fetchSscImpact(
 ): Promise<SscImpactPayload | null> {
   return getOrFallback<SscImpactPayload | null>(
     `/ssc/camps/${encodeURIComponent(campId)}/impact`,
-    { signal },
-    () => EMPTY_IMPACT,
+    { signal }
   );
 }
 
@@ -53,8 +54,7 @@ export async function fetchSscYearRollup(
 ): Promise<SscYearRollup | null> {
   return getOrFallback<SscYearRollup | null>(
     withParams(`/ssc/years/${year}/rollup`, {}),
-    { signal },
-    () => EMPTY_ROLLUP,
+    { signal }
   );
 }
 
@@ -65,7 +65,6 @@ export async function fetchSscCompare(
 ): Promise<SscCompareResponse> {
   return getOrFallback<SscCompareResponse>(
     withParams('/ssc/compare', { core }),
-    { signal },
-    () => EMPTY_COMPARE,
+    { signal }
   );
 }
