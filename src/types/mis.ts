@@ -83,9 +83,7 @@ export interface SubjectRow {
 }
 
 export interface RosterRow {
-  uid: string;
-  first?: string | null;
-  last?: string | null;
+  id: string;
   firstName?: string | null;
   lastName?: string | null;
   dob?: string | null;
@@ -93,26 +91,6 @@ export interface RosterRow {
   email?: string | null;
   phone?: string | null;
   school?: string | null;
-  match?: MatchStatus | string;
-  legacy?: string | null;
-  dobFlag?: boolean | null;
-  father?: string | null;
-  mother?: string | null;
-  fatherEdu?: string | null;
-  fatherEmp?: string | null;
-  motherEdu?: string | null;
-  motherEmp?: string | null;
-  sis?: string | null;
-  bro?: string | null;
-  consent?: boolean | null;
-  fav?: string | null;
-  diff?: string | null;
-  car1?: string | null;
-  car2?: string | null;
-  t1?: string | null;
-  t2?: string | null;
-  t3?: string | null;
-  band?: string | null;
   country?: string | null;
   [key: string]: unknown;
 }
@@ -144,8 +122,8 @@ export interface BandByTerm {
    `src/lib/api/` document the matching HTTP path. */
 
 export interface Paged<T> {
-  items: T[];
-  total: number;
+  data: T[];
+  totalCount: number;
   page: number;
   page_size: number;
   limit?: number;
@@ -513,4 +491,91 @@ export interface SCResponse {
   sscCount: number;
   dscCount: number;
   metrics: Metric[]
+}
+
+export interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  address: string | null;
+  country: string | null;
+  yearJoined: number | null;
+  consent: boolean;
+  combo: string | null;
+
+  ascgProfile: ASCGProfile | null;
+  cbcProfile: CBCProfile | null;
+
+  ascgParticipation: ASCGParticipation[];
+  cbcParticipation: CBCParticipation[];
+  scParticipation: SCParticipation[];
+}
+
+export interface ASCGProfile {
+  id: number;
+  studentId: string;
+  examCode: string | null;
+  schoolId: string | null;
+  fatherLastName: string | null;
+  fatherFirstName: string | null;
+  fatherPhone: string | null;
+  fatherEducation: string | null;
+  motherLastName: string | null;
+  motherFirstName: string | null;
+  motherPhone: string | null;
+  motherEducation: string | null;
+  numberOfBrothers: number | null;
+  numberOfSisters: number | null;
+  positionInFamily: string | null;
+  specialization: string | null;
+  favouriteSubject: string | null;
+  mostDifficultSubject: string | null;
+  careerChoice1: string | null;
+  careerChoice2: string | null;
+  parentalConsent: boolean | null;
+}
+
+export interface CBCProfile {
+  id: number;
+  studentId: string;
+  school: string | null;
+  priorTechEducation: string | null;
+  priorTechExperience: string | null;
+  completedProgram: boolean | null;
+  outcomeAt6Months: string | null;
+  outcomeAt12Months: string | null;
+  roleTitle: string | null;
+  company: string | null;
+  industry: string | null;
+  techEngagementLevel: string | null;
+}
+
+export interface ASCGParticipation {
+  id: number;
+  studentId: string;
+  schoolId: string;
+  type: string;
+  class: string;
+  year: number;
+  schoolName: string | null;
+}
+
+export interface CBCParticipation {
+  id: number;
+  studentId: string;
+  cohort: string | number;
+  trackId: string;
+  track: string | null;
+  year: number;
+}
+
+export interface SCParticipation {
+  id: number;
+  studentId: string;
+  theme: string;
+  type: string;
+  year: number;
 }

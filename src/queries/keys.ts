@@ -44,7 +44,7 @@ export const queryKeys = {
   /** Metrics-to-add proposals (static today). */
   metricProposals: ['mis', 'metrics-proposals'] as const,
   /** All SSC camps with a `hasResults` flag. */
-  sscCamps: (params?: Record<string, string | number | undefined>) => ['sc', 'camps','year', params.year ?? {}] as const,
+  sscCamps: (params?: Record<string, string | number | undefined>) => ['sc', 'camps', 'year', params?.year ?? 0] as const,
   /** One camp's full impact payload (`null` when no results). */
   sscImpact: (campId: string) => ['ssc', 'camps', campId, 'impact'] as const,
   /** Year-level rollup across camps (`null` when nothing loaded). */

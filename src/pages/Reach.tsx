@@ -45,12 +45,12 @@ export function Reach({ data }: { data: ReachPayload }) {
           accent="blue"
         />
 
-        <Kpi
+        {/* <Kpi
           label="Outreach · unique students"
           value={fmt(programById('outreach')?.uniqueStudents)}
           sub={programById('outreach')?.since != null ? `Since ${programById('outreach')?.since}` : 'Backend only'}
           accent="blue"
-        />
+        /> */}
 
         <Kpi
           label="CBC · unique students"
@@ -94,18 +94,18 @@ export function Reach({ data }: { data: ReachPayload }) {
             {rows.map((r) => (
               <Tr key={r.year}>
                 <Td className="font-mono tabular-nums">{r.year}</Td>
-                <TdNum>{fmt(r.n)}</TdNum>
-                <TdNum>{fmt(r.r)}</TdNum>
-                <TdNum>{fmt(r.c)}</TdNum>
-                <TdNum>{fmt(r.p)}</TdNum>
+                <TdNum align='right'>{fmt(r.n)}</TdNum>
+                <TdNum align='right'>{fmt(r.r)}</TdNum>
+                <TdNum align='right'>{fmt(r.c)}</TdNum>
+                <TdNum align='right'>{fmt(r.p)}</TdNum>
               </Tr>
             ))}
             <tr className="bg-paper font-bold">
               <Td>All years</Td>
-              <TdNum>{fmt(totalNew)}</TdNum>
-              <TdNum>{fmt(totalRet)}</TdNum>
-              <TdNum>{fmt(rows.reduce((a, b) => a + b.c, 0))}</TdNum>
-              <TdNum>{fmt(totalEnrolled)}</TdNum>
+              <TdNum align='right'>{fmt(totalNew)}</TdNum>
+              <TdNum align='right'>{fmt(totalRet)}</TdNum>
+              <TdNum align='right'>{fmt(rows.reduce((a, b) => a + b.c, 0))}</TdNum>
+              <TdNum align='right'>{fmt(totalEnrolled)}</TdNum>
             </tr>
           </tbody>
         </Table>

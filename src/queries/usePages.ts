@@ -54,8 +54,8 @@ export function useMetricProposals() {
 }
 
 /** All SSC camps, each carrying a `hasResults` flag. */
-export function useSscCamps() {
-  return useQuery(queryOptionFactories.sscCamps());
+export function useSscCamps(params:CbcOutcomeParams = {}) {
+  return useQuery(queryOptionFactories.sscCamps(params));
 }
 
 /** One camp's full impact payload (`null` when no results). */

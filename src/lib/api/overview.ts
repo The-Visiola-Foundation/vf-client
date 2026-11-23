@@ -3,7 +3,7 @@
  *
  *   GET /stats/overview -> OverviewPayload
  */
-import type { MisData, OverviewPayload } from '../../types/mis';
+import type { OverviewPayload } from '../../types/mis';
 import { getOrFallback } from './shared';
 
 export async function fetchOverview(signal?: AbortSignal): Promise<OverviewPayload> {

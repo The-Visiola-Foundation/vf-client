@@ -68,7 +68,7 @@ export function TdNum({
   return (
     <td
       {...rest}
-      className={`whitespace-nowrap border-b border-line px-[11px] py-2 text-right font-mono tabular-nums ${className ?? ''}`}
+      className={`whitespace-nowrap border-b border-line px-2.75 py-2 align-top font-mono tabular-nums ${className ?? ''}`}
     >
       {children}
     </td>

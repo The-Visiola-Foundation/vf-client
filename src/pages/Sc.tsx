@@ -38,18 +38,21 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
           accent='purple'
         />
 
-        <Kpi
-          label="STEM Summer Camp"
-          value={fmt(data.sscCount)}
-          accent='blue'
-          sub="Students trained during the SSC"
-        />
+        {
+          data.sscCount ? <Kpi
+            label="STEM Summer Camp"
+            value={fmt(data.sscCount)}
+            accent='blue'
+            sub="Students trained during the SSC"
+          /> : undefined
+        }
 
-        <Kpi
-          label="Total Students trained"
-          value={fmt(data.dscCount)}
-          accent='red'
-        />
+        {data.dscCount ?
+          <Kpi
+            label="December STEM Camps"
+            value={fmt(data.dscCount)}
+            accent='red'
+          /> : undefined}
       </Grid4>
 
       {/* Metrics Breakdown */}
@@ -57,14 +60,18 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
         <Notice
           variant='info'
           title="Impact Data Unavailable"
+          className='my-5'
         >
           <p>
             Impact records are not available for {year}. STEM Camp participation statistics are displayed above.
           </p>
         </Notice>
       ) : (
-        <Card>
+        <Card
+          className='my-5 pt-2'
+        >
           <Heading>STEM Camp Impact Figures</Heading>
+
         </Card>
       )}
 

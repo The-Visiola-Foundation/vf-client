@@ -50,9 +50,9 @@ export function RegisterControls({
         </button>
       </form>
       <span className="flex-1" />
-      <button type="button" onClick={onAdd} className={BTN} disabled={busy}>
+      {/* <button type="button" onClick={onAdd} className={BTN} disabled={busy}>
         {busy ? 'Adding…' : 'Add student'}
-      </button>
+      </button> */}
 
     </div>
   );

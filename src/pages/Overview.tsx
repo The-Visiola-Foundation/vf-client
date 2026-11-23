@@ -14,7 +14,7 @@ export function Overview({ data }: { data: OverviewPayload }) {
       </Lede>
 
       <Grid4>
-        <Kpi label="Unique students" value={fmt(data.students)} accent="blue" />
+        <Kpi label="Unique students" value={fmt(data.students)} accent="blue" sub="Total number of students trained across all programs" />
         <Kpi
           label="Participations"
           value={fmt(data.participation)}

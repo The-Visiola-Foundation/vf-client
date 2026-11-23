@@ -14,6 +14,7 @@ import type {
   RegisterFilters,
   RegisterPage,
   RosterRow,
+  Student,
 } from '../../types/mis';
 import { buildRegisterEditsCsv } from '../csv';
 import { registerBlankRow } from '../registerColumns';
@@ -46,7 +47,7 @@ function normalizeSchoolNames(raw: unknown): string[] {
 
 /** v0 monolith accessor — the whole snapshot until per-page splits land. */
 export async function fetchDashboard(signal?: AbortSignal): Promise<MisData> {
-  return getOrFallback('/stats/overview', { signal }, (s) => s);
+  return getOrFallback('/stats/overview', { signal });
 }
 
 export async function fetchSchools(signal?: AbortSignal): Promise<string[]> {
@@ -55,7 +56,7 @@ export async function fetchSchools(signal?: AbortSignal): Promise<string[]> {
     return normalizeSchoolNames(raw);
   }
 
-  return getOrFallback('/schools', { signal }, (s) => s.schools);
+  return getOrFallback('/schools', { signal });
 }
 
 function applyRegisterFilters(
@@ -89,7 +90,6 @@ type StudentApiRow = {
 };
 
 type StudentPageApiResponse = {
-  items?: StudentApiRow[];
   data?: StudentApiRow[];
   total?: number;
   page?: number;
@@ -164,74 +164,13 @@ export async function fetchRegisterPage(
     limit: requestLimit,
   };
 
-  if (isBackendConfigured) {
-    const payload = await apiRequest<StudentPageApiResponse>(withParams('/students', requestParams), {
-      signal,
-    });
-
-    const response = (payload && typeof payload === 'object' && ('items' in payload || 'data' in payload)
-      ? payload
-      : {
-          data: Array.isArray(payload) ? payload : [],
-          total: 0,
-          page: requestPage,
-          limit: requestLimit,
-        }) as StudentPageApiResponse;
-
-    const sourceRows = Array.isArray(response.data) ? response.data : Array.isArray(response.items) ? response.items : [];
-    const rows = sourceRows.map(normalizeStudentApiRow);
-
-    const total = Number(response.total ?? rows.length);
-    const pageNumber = Number(response.page ?? requestPage);
-    const pageLimit = Number(response.limit ?? response.page_size ?? requestLimit);
-    const totalPages = Number(response.totalPages ?? Math.max(1, Math.ceil(total / (pageLimit || 1))));
-    const filtered = applyRegisterFilters(rows, filters);
-    const start = (pageNumber - 1) * pageLimit;
-
-    return {
-      items: filtered.rows.slice(start, start + pageLimit),
-      total: filtered.total ?? total,
-      page: pageNumber,
-      page_size: pageLimit,
-      limit: pageLimit,
-      totalPages,
-    };
-  }
-
-  return getOrFallback(withParams('/students', requestParams), { signal }, (s) => {
-    const { rows, total } = applyRegisterFilters(s.roster, filters);
-    const start = (requestPage - 1) * requestLimit;
-    const totalPages = Math.max(1, Math.ceil(total / requestLimit));
-    return {
-      items: rows.slice(start, start + requestLimit),
-      total,
-      page: requestPage,
-      page_size: requestLimit,
-      limit: requestLimit,
-      totalPages,
-    };
-  });
+  return getOrFallback(withParams('/students', requestParams), { signal});
 }
 
-export async function fetchStudent(uid: string, signal?: AbortSignal): Promise<RosterRow> {
+export async function fetchStudent(uid: string, signal?: AbortSignal): Promise<Student> {
   const path = `/students/${encodeURIComponent(uid)}`;
 
-  if (isBackendConfigured) {
-    const row = await api.get<StudentApiRow | RosterRow | null>(path, { signal });
-    if (!row) throw new Error(`Student ${uid} not found.`);
-
-    if ('uid' in row && typeof row.uid === 'string') {
-      return row as RosterRow;
-    }
-
-    return normalizeStudentApiRow(row as StudentApiRow);
-  }
-
-  return getOrFallback(path, { signal }, (s) => {
-    const row = s.roster.find((r: RosterRow) => r.uid === uid);
-    if (!row) throw new Error(`Student ${uid} not found in the loaded snapshot`);
-    return row;
-  });
+  return getOrFallback(path, { signal });
 }
 
 export interface UpdateStudentPayload {
