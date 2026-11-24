@@ -46,12 +46,12 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-4 py-10">
       <div className="w-full max-w-110">
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex justify-center items-center gap-3">
           <img src={logoUrl} alt="The Visiola Foundation" className="block h-12 w-auto" />
         </div>
         <div className="rounded-card border border-line bg-card p-6">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted">
-            Management Information System
+            Visiola Foundation Management Information System
           </p>
           <h1 className="mt-1.5 text-[22px]">Sign in</h1>
      

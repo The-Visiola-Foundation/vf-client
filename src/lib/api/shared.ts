@@ -15,7 +15,7 @@ const BASE = import.meta.env.BASE_URL ?? '/';
 
 
 /** Static asset (not a backend resource) — kept beside the API for convenience. */
-export const logoUrl = `${BASE}logo.jpg`;
+export const logoUrl = `${BASE}logo.png`;
 
 const snapshotUrl = `${BASE}data/mis-dashboard.json`;
 
