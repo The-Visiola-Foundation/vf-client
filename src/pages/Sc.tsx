@@ -24,18 +24,18 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
   return (
     <>
       <Eyebrow>STEM Camps</Eyebrow>
-      <PageTitle>STEM Camps Overview</PageTitle>
+      <PageTitle>STEM Camps Participation</PageTitle>
       <Lede>
-        This dashboard presents participation across STEM Camps learning tracks and shows the
-        distribution of students across each pathway for {yearLabel(year)}.
+        Students enrolled in the STEM Summer Camp and the December STEM Camps in {yearLabel(year)}.
       </Lede>
 
-      <SectionHeading>Program Participation</SectionHeading>
+      <SectionHeading>Enrolment overview</SectionHeading>
       <Grid4>
         <Kpi
           label="Total Students trained"
           value={fmt(total)}
           accent='purple'
+          sub="Summer and December camps combined"
         />
 
         {
@@ -43,7 +43,7 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
             label="STEM Summer Camp"
             value={fmt(data.sscCount)}
             accent='blue'
-            sub="Students trained during the SSC"
+            sub={`Enrolments in the summer camp${!!year? '' : 's'}`}
           /> : undefined
         }
 
@@ -52,6 +52,7 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
             label="December STEM Camps"
             value={fmt(data.dscCount)}
             accent='red'
+            sub={`Enrolments in the December camp${!!(year) ? '' : 's'}`}
           /> : undefined}
       </Grid4>
 
@@ -59,18 +60,18 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
       {!hasMetrics ? (
         <Notice
           variant='info'
-          title="Impact Data Unavailable"
+          title="Impact figures not available"
           className='my-5'
         >
           <p>
-            Impact records are not available for {year}. STEM Camp participation statistics are displayed above.
+            No impact records for for {year}. Enrolment figures above are still shown.
           </p>
         </Notice>
       ) : (
         <Card
           className='my-5 pt-2'
         >
-          <Heading>STEM Camp Impact Figures</Heading>
+          <Heading>STEM Camp impact figures</Heading>
 
         </Card>
       )}

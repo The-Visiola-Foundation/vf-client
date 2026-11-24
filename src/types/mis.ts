@@ -135,11 +135,25 @@ export interface PageParams {
   page_size?: number;
 }
 
+export interface ByField {
+  field: string;
+  emptyFields: number;
+  filledFields: number
+}
+
+export interface ASCGFields {
+  totalfields: number;
+  emptyFields: number;
+  filledFields: number;
+  byField: ByField[]
+}
+
 /** Overview page: headline totals + field completeness gauges. */
 export interface OverviewPayload {
   students: number;
   participation: number;
   schools: number;
+  ascgProfileFieldCompletion: ASCGFields
 }
 
 
@@ -426,6 +440,13 @@ export interface Grade {
   declined: number
 }
 
+export interface SchoolStat {
+  schoolId: string;
+  school: string;
+  category: "senior" | "junior",
+  studentCount: number
+}
+
 export interface AscgAcademicResponse {
   "year": number,
   "summary": {
@@ -450,6 +471,7 @@ export interface AscgAcademicResponse {
   "gpaTrend": Omit<GPA, "id" | "year">[],
   "movementBySubject": [],
   "performanceByTerm": Omit<Performance, "id" | "year">[],
+  schoolStats: SchoolStat[]
 }
 
 export enum Cohort {

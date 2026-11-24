@@ -75,41 +75,40 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
   return (
     <>
       <Eyebrow>Coding Boot Camp</Eyebrow>
-      <PageTitle>CBC Program Overview</PageTitle>
+      <PageTitle>CBC Participation</PageTitle>
       <Lede>
-        This dashboard presents participation across CBC learning tracks and shows the
-        distribution of students across each pathway for {yearLabel(year)}.
+       How many students enrolled in each Coding Boot Camp track in {yearLabel(year)}. A cohort breakdown appears when a single year is selected.
       </Lede>
 
-      <SectionHeading>Program Participation</SectionHeading>
+      <SectionHeading>Enrolment overview</SectionHeading>
       <Grid4>
         <Kpi
-          label="Total Participation"
+          label="Total Enrolments"
           value={fmt(total)}
-          sub="Overall enrolments across all tracks"
+          sub="A student in two tracks is counted twice"
           accent="blue"
         />
         <Kpi
           label="Unique Students"
           value={fmt(uniqueCount)}
-          sub="Students counted once across the programme"
+          sub="Each student counted once, across all tracks"
           accent="green"
         />
         <Kpi
           label="Number of Learning Tracks"
           value={fmt(orderedTracks.length)}
-          sub="Distinct CBC tracks in the dataset"
+          sub={`Tracks with enrolments in ${yearLabel(year)}`}
           accent="purple"
         />
       </Grid4>
 
 
-      <SectionHeading>Track Summary</SectionHeading>
+      <SectionHeading>Enrolments by track</SectionHeading>
 
       {orderedTracks.length === 0 ? (
         <Card>
           <p className="mb-0 text-sm text-muted">
-            There are no learning tracks to summarise for this filter.
+            No enrolments recorded for {year}.
           </p>
         </Card>
       ) : (
@@ -118,8 +117,8 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
             <thead>
               <tr>
                 <Th>Track</Th>
-                <Th align="right">Participants</Th>
-                <Th align="right">% of total</Th>
+                <Th align="left">Enrolments</Th>
+                <Th align="right">Share of enrolments</Th>
               </tr>
             </thead>
             <tbody>
@@ -129,7 +128,7 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
                   <Tr key={track.trackId}>
                     <Td>{track.trackName}</Td>
                     <TdNum>{fmt(track.studentCount)}</TdNum>
-                    <TdNum>{share.toFixed(1)}%</TdNum>
+                    <TdNum align='right'>{share.toFixed(1)}%</TdNum>
                   </Tr>
                 );
               })}
@@ -138,7 +137,7 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
                   <b>Total</b>
                 </Td>
                 <TdNum>{fmt(total)}</TdNum>
-                <TdNum>100.0%</TdNum>
+                <TdNum align='right'>100.0%</TdNum>
               </Tr>
             </tbody>
           </Table>
@@ -147,12 +146,12 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
 
       {showCohortSection && (
         <>
-          <SectionHeading>Participation by Cohort</SectionHeading>
+          <SectionHeading>Enrolments by Cohort</SectionHeading>
 
           {orderedCohorts.length === 0 || total === 0 ? (
             <Card>
               <p className="mb-0 text-sm text-muted">
-                No cohort participation data is available for {yearLabel(year)} yet.
+                No cohort data is available for {yearLabel(year)} yet.
               </p>
             </Card>
           ) : (
@@ -160,7 +159,7 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
               <BarChart
                 rows={cohortRows}
                 labelKey="label"
-                series={[{ k: 'value', label: 'Participation', c: '#958EB8' }]}
+                series={[{ k: 'value', label: 'Enrolments', c: '#958EB8' }]}
               />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">

@@ -10,7 +10,7 @@ import {
   useOverview,
   useReach,
   useSscCamps,
-  useSscCompare,
+
 } from '../../queries/usePages';
 import { useLogout, useSession } from '../../queries/useSession';
 import { TopBar } from './TopBar';
@@ -337,7 +337,7 @@ export function AppLayout() {
 
   if (studentId) {
     return (
-      <>
+      <div className='max-w-360 mx-auto'>
         <TopBar user={user} signingOut={logout.isPending} onSignOut={onSignOut} />
         <div className="flex min-h-[calc(100vh-64px)] items-start max-[820px]:flex-col">
           <Rail role={role} />
@@ -345,7 +345,7 @@ export function AppLayout() {
             <StudentPage studentId={studentId} />
           </main>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -357,7 +357,7 @@ export function AppLayout() {
   const label = roleLabel(role);
 
   return (
-    <>
+    <div className='max-w-360 mx-auto'>
       <TopBar user={user} signingOut={logout.isPending} onSignOut={onSignOut} />
       <div className="flex min-h-[calc(100vh-64px)] items-start max-[820px]:flex-col">
         <Rail role={role} />
@@ -382,6 +382,6 @@ export function AppLayout() {
           )}
         </main>
       </div>
-    </>
+    </div>
   );
 }

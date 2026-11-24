@@ -4,6 +4,7 @@ import { pct } from '../lib/format';
 import { Card, Kpi, Notice } from '../components/ui/primitives';
 import {
   Eyebrow,
+  Grid2,
   Grid4,
   Lede,
   Legend,
@@ -23,7 +24,7 @@ export function Ascg({
   data: AscgAcademicResponse;
   year: number;
 }) {
-  const { gpaTrend, performanceByTerm, records, summary } = data;
+  const { gpaTrend, performanceByTerm, records, summary, schoolStats } = data;
 
   const gpaByTerm = Object.fromEntries(
     records.gpa.map((g) => [g.term, g.gpa]),
@@ -53,6 +54,9 @@ export function Ascg({
 
   const hasAcademicData = summary.totalRecords > 0;
 
+  const seniors = schoolStats.filter(x=>x.category === 'senior').length ?? 0
+  const junior = schoolStats.filter(x=>x.category === 'junior').length ?? 0
+
   return (
     <>
       {/* Page Introduction */}
@@ -60,46 +64,51 @@ export function Ascg({
         Indicator 2 · {year} cohort, n={cohort.toLocaleString()}
       </Eyebrow>
 
-      <PageTitle>ASCG Program Overview</PageTitle>
+      <PageTitle>ASCG participation and academic results</PageTitle>
 
       <Lede>
-        This overview presents ASCG student participation and academic
-        performance, including student retention, GPA trends, and
-        performance across subjects and terms.
+     Enrolment and academic results for ASCG students: first-time and returning students, GPA by term, and movement across subjects.
       </Lede>
 
       {/* ASCG Participation */}
-      <SectionHeading>ASCG Participation</SectionHeading>
+      <SectionHeading>Enrolment</SectionHeading>
 
-      <Grid4>
+      <Grid2>
         <Kpi
-          label="Total Participation"
+          label="Total Enrolments"
           value={(summary.totalParticipation ?? 0).toLocaleString()}
-          sub="All participation records"
+          sub={`All ASCG enrolments in ${year}`}
           accent="blue"
         />
 
         <Kpi
-          label="New Students"
+          label="First-time students"
           value={(summary.uniqueParticipation ?? 0).toLocaleString()}
-          sub="First-time participants"
+          sub="Enrolled for the first time"
           accent="green"
         />
 
         <Kpi
           label="Returning Students"
           value={(summary.returningParticipation ?? 0).toLocaleString()}
-          sub="Previously enrolled students"
+          sub="Enrolled in an earlier year"
           accent="purple"
         />
-      </Grid4>
+
+          <Kpi
+          label="Schools"
+          value={( schoolStats.length ?? 0).toLocaleString()}
+          sub={`Across ${junior} junior secondary and ${seniors} senior secondary schools in the FCT`}
+          accent="red"
+        />
+      </Grid2>
 
       {/* Academic Performance */}
       {!hasAcademicData ? (
         <Notice
           variant="warn"
           className="mt-3.5"
-          title="Academic Data Unavailable"
+          title="Academic results not available"
         >
           <p>
             Academic performance records are not available for {year}.
@@ -111,10 +120,7 @@ export function Ascg({
           <SectionHeading>Academic Performance</SectionHeading>
 
           <Lede>
-            Grades are held as letters and converted on a 5.0 scale
-            (A=5 to F=0). That scale was confirmed against the
-            Foundation&rsquo;s own term averages before being applied,
-            not assumed.
+           Letter grades are converted to a 5.0 scale (A = 5 to F = 0), checked against the Foundation's term averages.
           </Lede>
 
           {/* Academic Performance Overview */}
@@ -124,7 +130,7 @@ export function Ascg({
               value={pct(
                 (summary.improved / summary.totalRecords) * 100,
               )}
-              sub={`${summary.improved} of ${summary.totalRecords} with both term 1 and term 3`}
+              sub={`${summary.improved} of ${summary.totalRecords} with grades in term 1 and term 3`}
               accent="green"
             />
 
@@ -133,7 +139,7 @@ export function Ascg({
               value={pct(
                 (summary.stable / summary.totalRecords) * 100,
               )}
-              sub={`${summary.stable} within ±0.10 GPA`}
+              sub={`${summary.stable} whose GPA changed by 0.10 or less`}
               accent="purple"
             />
 
@@ -142,20 +148,20 @@ export function Ascg({
               value={pct(
                 (summary.declined / summary.totalRecords) * 100,
               )}
-              sub={`${summary.declined} students`}
+              sub={`${summary.declined} whose GPA fell by more than 0.10`}
               accent="red"
             />
 
             <Kpi
-              label="Net GPA Change, Term 1 to 3"
+              label="Average GPA change, term 1 to 3"
               value={summary.netGpaChange}
-              sub={`${gpaByTerm['Term 1'] ?? '—'} → ${gpaByTerm['Term 3'] ?? '—'} out of 5.00`}
+              sub={`Term 1 average ${gpaByTerm['Term 1'] ?? '—'} → ${gpaByTerm['Term 3'] ?? '—'} (out of 5.00)`}
               accent="blue"
             />
           </Grid4>
 
           {/* Average GPA by Term */}
-          <SectionHeading>Average GPA by Term</SectionHeading>
+          <SectionHeading>Average GPA by term</SectionHeading>
 
           {gpaTrend.length === 0 ? (
             <Card>
@@ -178,8 +184,8 @@ export function Ascg({
                     <b className="font-mono tabular-nums">
                       {x.term}
                     </b>{' '}
-                    · {x.numberOfRecords} records · {x.percentage}%
-                    complete
+                    · {x.numberOfRecords} students with a GPA ({x.percentage}% of
+                    cohort)
                   </span>
                 ))}
               </Legend>
@@ -205,24 +211,24 @@ export function Ascg({
           )}
 
           {/* Progress Classification */}
-          <SectionHeading>Progress Classification</SectionHeading>
+          <SectionHeading>Change in GPA, term 1 to term 3</SectionHeading>
 
           <Card>
             <StackBar
               total={summary.totalRecords}
               segments={[
                 {
-                  label: 'Improved (>+0.10)',
+                  label: 'Improved (rose by more than 0.10)',
                   v: summary.improved,
                   c: '#9EC83E',
                 },
                 {
-                  label: 'Stable (±0.10)',
+                  label: ' Stable (within 0.10)',
                   v: summary.stable,
                   c: '#958EB8',
                 },
                 {
-                  label: 'Declined (<−0.10)',
+                  label: 'Declined (fell by more than 0.10)',
                   v: summary.declined,
                   c: '#D8232A',
                 },
@@ -231,7 +237,7 @@ export function Ascg({
           </Card>
 
           {/* Movement by Subject */}
-          <SectionHeading>Movement by Subject</SectionHeading>
+          <SectionHeading>Change by subject</SectionHeading>
 
           {records.grades.length === 0 ? (
             <Card>
@@ -246,9 +252,9 @@ export function Ascg({
                   <tr>
                     <Th>Subject</Th>
                     <Th align="right">Paired</Th>
-                    <Th align="right">Term 1</Th>
-                    <Th align="right">Term 2</Th>
-                    <Th align="right">Term 3</Th>
+                    <Th align="right">Avg. term 1</Th>
+                    <Th align="right">Avg term 2</Th>
+                    <Th align="right">Avg term 3</Th>
                     <Th align="right">Improved</Th>
                     <Th align="right">Stable</Th>
                     <Th align="right">Declined</Th>
@@ -282,7 +288,7 @@ export function Ascg({
           )}
 
           {/* Performance Bands */}
-          <SectionHeading>Performance Bands by Term</SectionHeading>
+          <SectionHeading>Performance bands by term</SectionHeading>
 
           {performanceByTerm.length === 0 ? (
             <Card>
@@ -320,8 +326,7 @@ export function Ascg({
               />
 
               <p className="mb-0 mt-2 text-[12.5px] text-muted">
-                Band counts are not comparable across terms while
-                term 3 is only {term3Pct}% complete.
+                Band counts are not comparable across terms.
               </p>
             </Card>
           )}

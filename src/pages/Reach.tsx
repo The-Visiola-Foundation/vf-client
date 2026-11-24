@@ -32,14 +32,12 @@ export function Reach({ data }: { data: ReachPayload }) {
       <Eyebrow>Indicator 1</Eyebrow>
       <PageTitle>Reach and enrolment</PageTitle>
       <Lede>
-        A girl is counted once however many years or programmes she appears in. Within any
-        single year she can only be enrolled once, so the split that carries information is
-        first-time against returning.
+        Each girl is counted once, however many years or programmes she appears in. Within a single year she can be enrolled only once, so the useful split is first-time against returning.
       </Lede>
 
       <Grid4>
         <Kpi
-          label="ASCG · unique students"
+          label="After-School STEM Clubs for Girls · unique students"
           value={fmt(programById('ascg')?.uniqueStudents)}
           sub={programById('ascg')?.since != null ? `Since ${programById('ascg')?.since}` : 'Backend only'}
           accent="blue"
@@ -53,16 +51,16 @@ export function Reach({ data }: { data: ReachPayload }) {
         /> */}
 
         <Kpi
-          label="CBC · unique students"
+          label="Coding Bootcamps · unique students"
           value={fmt(programById('cbc')?.uniqueStudents)}
           sub={programById('cbc')?.since != null ? `Since ${programById('cbc')?.since}` : 'Backend only'}
           accent="purple"
         />
         <Kpi
-          label="SC · unique students"
+          label="STEM Camps · unique students"
           value={fmt(programById('sc')?.uniqueStudents)}
           sub={programById('sc')?.since != null ? `Since ${programById('sc')?.since}` : 'Backend only'}
-          accent="purple"
+          accent="green"
         />
       </Grid4>
 
@@ -72,7 +70,7 @@ export function Reach({ data }: { data: ReachPayload }) {
           rows={rows}
           labelKey="year"
           series={[
-            { k: 'n', label: 'Joined for the first time', c: '#00A3DA' },
+            { k: 'n', label: 'First-time', c: '#00A3DA' },
             { k: 'r', label: 'Returning', c: '#958EB8' },
             { k: 'c', label: 'Unclassified', c: '#F5A623' },
           ]}

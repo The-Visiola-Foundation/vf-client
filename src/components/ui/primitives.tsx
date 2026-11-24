@@ -84,7 +84,7 @@ export function Gauge({
 }) {
   const p = total ? (filled / total) * 100 : 0;
   return (
-    <div className="mt-2.5 flex h-[7px] overflow-hidden rounded-[4px] border border-line">
+    <div className="mt-2.5 flex h-1.75 overflow-hidden rounded-sm border border-line">
       <div
         className={variant === 'blue' ? 'bg-vf-blue' : 'bg-vf-green'}
         style={{ width: `${p.toFixed(1)}%` }}
