@@ -122,8 +122,7 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
         <Eyebrow>Records · key staff only</Eyebrow>
         <PageTitle>Student register</PageTitle>
         <Lede>
-          This view matches the live students JSON: student ID, names, DOB, age, contact info,
-          school and country. Pagination follows the API response page metadata.
+          Search, review and edit student records: names, date of birth, contact details, school and country. Changes are saved as you make them.
         </Lede>
 
         <RegisterControls
@@ -146,9 +145,7 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
 
         <p className="mb-3 -mt-1 text-[12.5px] text-muted">
           Showing <b className="font-mono tabular-nums">{fmt(rows.length)}</b> of{' '}
-          <b className="font-mono tabular-nums">{fmt(total)}</b> {' '}students ·{' '} page{' '}
-          <b className="font-mono tabular-nums">{currentPage}</b> of{' '}
-          <b className="font-mono tabular-nums">{totalPages}</b>
+          <b className="font-mono tabular-nums">{fmt(total)}</b> {' '}students
         </p>
 
         <RegisterTable rows={query.data?.data} />

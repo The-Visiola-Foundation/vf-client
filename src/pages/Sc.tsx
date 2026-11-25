@@ -23,7 +23,7 @@ export function SC({ data, year }: { data: SCResponse, year: number }) {
 
   return (
     <>
-      <Eyebrow>STEM Camps</Eyebrow>
+      <Eyebrow>STEM Camps (SC)</Eyebrow>
       <PageTitle>STEM Camps Participation</PageTitle>
       <Lede>
         Students enrolled in the STEM Summer Camp and the December STEM Camps in {yearLabel(year)}.

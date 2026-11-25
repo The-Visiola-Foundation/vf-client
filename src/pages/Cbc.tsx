@@ -74,7 +74,7 @@ export function Cbc({ data, year }: { data: CbcResponse; year: number }) {
 
   return (
     <>
-      <Eyebrow>Coding Boot Camp</Eyebrow>
+      <Eyebrow>Coding Bootcamps (CBC)</Eyebrow>
       <PageTitle>CBC Participation</PageTitle>
       <Lede>
        How many students enrolled in each Coding Boot Camp track in {yearLabel(year)}. A cohort breakdown appears when a single year is selected.

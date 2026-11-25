@@ -50,12 +50,6 @@ function LoginForm() {
           <img src={logoUrl} alt="The Visiola Foundation" className="block h-12 w-auto" />
         </div>
         <div className="rounded-card border border-line bg-card p-6">
-          <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted">
-            Visiola Foundation Management Information System
-          </p>
-          <h1 className="mt-1.5 text-[22px]">Sign in</h1>
-     
-
           <form onSubmit={onSubmit} className="mt-5 space-y-3.5">
             <label className="block">
               <span className="mb-1.5 block text-[12.5px] font-semibold">Email</span>

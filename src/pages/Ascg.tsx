@@ -61,7 +61,7 @@ export function Ascg({
     <>
       {/* Page Introduction */}
       <Eyebrow>
-        Indicator 2 · {year} cohort, n={cohort.toLocaleString()}
+        After-School STEM Clubs for Girls (ASCG)
       </Eyebrow>
 
       <PageTitle>ASCG participation and academic results</PageTitle>
