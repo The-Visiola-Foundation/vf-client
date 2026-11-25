@@ -45,9 +45,9 @@ export const PAGES: PageDef[] = [
   { id: 'cbc', label: 'Coding Boot Camp', group: 'Programmes' },
   { id: 'sc', label: 'STEM Camps', group: 'Programmes' },
   { id: 'register', label: 'Student register', group: 'Records' },
-  { id: 'quality', label: 'Data quality', group: 'Records' },
+  // { id: 'quality', label: 'Data quality', group: 'Records' },
   { id: 'board', label: 'Board summary', group: 'Governance' },
-  { id: 'proposed', label: 'Metrics to add', group: 'Governance' },
+  // { id: 'proposed', label: 'Metrics to add', group: 'Governance' },
 ];
 
 export const DEFAULT_ROLE: Role = 'admin';

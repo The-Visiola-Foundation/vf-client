@@ -142,7 +142,7 @@ export function useSaveCell() {
         if (!old?.data) return old;
         return {
           ...old,
-          data: old.data.map((row: RosterRow) =>
+          data: old.data.map((row) =>
             row.uid === edit.uid ? ({ ...row, [edit.key]: edit.value } as RosterRow) : row,
           ),
         };
@@ -199,7 +199,7 @@ export function useAddStudent() {
     onMutate: () => {
       const previous = qc.getQueryData<MisData>(queryKeys.dashboard);
       if (previous) {
-        const n = previous.roster.filter((r) => String(r.uid).startsWith('VF-NEW')).length + 1;
+        const n = previous.roster.filter((r) => r.id.startsWith('VF-NEW')).length + 1;
         const row = registerBlankRow(`VF-NEW-${String(n).padStart(4, '0')}`);
         qc.setQueryData<MisData>(queryKeys.dashboard, {
           ...previous,
@@ -258,4 +258,3 @@ export function useUpdateStudent() {
     },
   });
 }
-
