@@ -1,116 +1,211 @@
 import type { BoardData } from '../types/mis';
 import { fmt } from '../lib/format';
-import { Card, EmptyState, Kpi, Notice } from '../components/ui/primitives';
-import { Eyebrow, Grid2, Grid4, Heading, Lede, PageTitle, SectionHeading } from '../components/ui/layout';
+import { Card, EmptyState, Kpi } from '../components/ui/primitives';
+import {
+  Eyebrow,
+  Grid2,
+  Grid4,
+  Heading,
+  Lede,
+  PageTitle,
+  SectionHeading,
+} from '../components/ui/layout';
 import { BarChart, StackBar } from '../components/ui/charts';
 
+const DASH = '–';
+
+// "south africa" -> "South Africa"
+const titleCase = (value: string) =>
+  value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
 export function Board({ data }: { data: BoardData }) {
+  const { ASCG, CBC, SC, consentRate, studentCountByYear } = data;
+  const schools = ASCG?.schools;
+  const since = ASCG?.since;
 
-  const { ASCG, CBC, SC, consentRate, studentCountByYear } = data
-  const { schools, academics, since } = ASCG
+  // ---- ASCG academic outcome (latest cohort) -------------------------------
+  const academic = [...(ASCG?.academics ?? [])].sort((a, b) => b.year - a.year)[0];
+  const studentsAnalysed = academic
+    ? academic.improved + academic.stable + academic.declined
+    : 0;
+  const hasAcademic = !!academic && studentsAnalysed > 0;
+  const improvedPct = hasAcademic
+    ? ((academic.improved / studentsAnalysed) * 100).toFixed(1)
+    : null;
 
-  const academic = [...academics].sort((a, b) => b.year - a.year)[0]
-  const studentsAnalyzed = (academic.declined + academic.stable + academic.improved)
-  const improvedMetric = ((academic.improved / studentsAnalyzed) * 100).toFixed(1)
+  // ---- Countries ------------------------------------------------------------
+  const countries = [
+    ...new Set(
+      (data?.countries ?? [])
+        .map((x) => x.country?.trim().toLowerCase())
+        .filter((x): x is string => Boolean(x)),
+    ),
+  ].map(titleCase);
 
-  const p = { assessed: studentsAnalyzed, improved: academic.improved, stable: academic.stable, declined: academic.declined };
+  // ---- Parental consent: "not recorded" is different from 0% ----------------
+  const consentRecorded =
+    consentRate !== null && consentRate !== undefined && String(consentRate).trim() !== '';
+
+  // ---- STEM Camps -----------------------------------------------------------
+  const hasSsc = Number(SC?.uniqueStudents) > 0;
+  const hasDsc = Number(SC?.returningParticipations) > 0;
 
   return (
     <>
       <Eyebrow>Governance · aggregate figures only</Eyebrow>
       <PageTitle>Board summary</PageTitle>
-      <div className='space-y-2'>
-        {/* ASCG Stats */}
+      <Lede>
+        Reach, academic outcomes and data gaps across all programmes. Aggregate figures
+        only; no individual records are shown.
+      </Lede>
 
+      {/* Headline figures */}
+      <Grid2>
+        <Kpi
+          label="Unique students"
+          value={fmt(data.students)}
+          accent="blue"
+          sub="Each girl counted once, across all years and programmes"
+        />
+        <Kpi
+          label="Countries"
+          value={fmt(countries.length)}
+          accent="purple"
+          sub={countries.length ? countries.join(', ') : DASH}
+        />
+      </Grid2>
+
+      {/* Headline trend */}
+      <div className="mt-3.5">
         <Card>
-          <Heading>{ASCG.description}</Heading>
+          <Heading>First-time students by year</Heading>
+          <BarChart
+            rows={studentCountByYear ?? []}
+            labelKey="year"
+            series={[{ k: 'count', label: 'First-time students', c: '#00A3DA' }]}
+          />
+          <p className="mb-0 mt-2 text-[12.5px] text-muted">
+            Each girl is counted once, in the year she first enrolled.
+          </p>
+        </Card>
+      </div>
+
+      <SectionHeading>Breakdown by programme</SectionHeading>
+
+      <div className="space-y-3.5">
+        {/* ASCG */}
+        <Card>
+          <Heading>Afterschool STEM Clubs for Girls (ASCG)</Heading>
           <Grid4>
             <Kpi
-              label="Girls Trained, ASCG"
-              value={fmt(data.ASCG?.uniqueStudents ?? 0)}
-              sub={"Unique, since " + since}
+              label="ASCG · unique students"
+              value={fmt(ASCG?.uniqueStudents ?? 0)}
+              sub={since != null ? `Since ${since}` : 'Start year not recorded'}
               accent="blue"
             />
             <Kpi
-              label="Schools served"
-              value={schools}
-              sub="Federal Capital Territory"
+              label="Schools"
+              value={schools != null ? fmt(schools) : DASH}
+              sub="Schools reached in the FCT"
               accent="green"
             />
             <Kpi
-              label="ASCG students improving"
-              value={`${improvedMetric}%`}
-              sub={`${academic.year} cohort, n=${studentsAnalyzed}`}
+              label="Improved GPA, term 1 to 3"
+              value={improvedPct !== null ? `${improvedPct}%` : DASH}
+              sub={
+                hasAcademic
+                  ? `${academic.year} cohort · n = ${fmt(studentsAnalysed)} students with both terms`
+                  : 'No academic results yet'
+              }
               accent="purple"
             />
             <Kpi
               label="Parental consent on file"
-              value={<span className="text-vf-red">{consentRate || '0%'}</span>}
-              sub="Not recorded for any student"
-              accent="red"
+              value={consentRecorded ? String(consentRate) : 'Not recorded'}
+              sub={
+                consentRecorded
+                  ? 'Of ASCG students, parental consent on file'
+                  : 'Consent is not yet captured in the register'
+              }
+              accent={consentRecorded ? 'green' : 'red'}
             />
           </Grid4>
 
-          <SectionHeading>Academic outcome, {academic.year} cohort</SectionHeading>
-          <Card>
-            <StackBar
-              total={p.assessed}
-              segments={[
-                { label: 'Improved', v: p.improved, c: '#9EC83E' },
-                { label: 'Stable', v: p.stable, c: '#958EB8' },
-                { label: 'Declined', v: p.declined, c: '#D8232A' },
-              ]}
-            />
-          </Card>
+          {hasAcademic && (
+            <>
+              <SectionHeading>
+                Change in GPA, term 1 to term 3 · {academic.year} cohort
+              </SectionHeading>
+              <StackBar
+                total={studentsAnalysed}
+                segments={[
+                  { label: 'Improved', v: academic.improved, c: '#9EC83E' },
+                  { label: 'Stable', v: academic.stable, c: '#958EB8' },
+                  { label: 'Declined', v: academic.declined, c: '#D8232A' },
+                ]}
+              />
+            </>
+          )}
         </Card>
-        {/* CBC Stats */}
 
+        {/* Coding Boot Camp */}
         <Card>
-          <Heading>{CBC.description}</Heading>
+          <Heading>Coding Boot Camp (CBC)</Heading>
           <Grid2>
             <Kpi
-              label="CBC Graduates"
-              value={fmt(CBC.uniqueStudents)}
-              accent='green'
-              sub={`Unique, since ${CBC.since}`}
+              label="Coding Boot Camp · unique students"
+              value={fmt(CBC?.uniqueStudents)}
+              accent="green"
+              sub={CBC?.since != null ? `Since ${CBC.since}` : 'Start year not recorded'}
             />
-             <Kpi
-              label="Tracks Taught"
-              value={fmt(CBC.trackCount)}
-              accent='red'
-              sub={`Unique, since ${CBC.since}`}
+            <Kpi
+              label="Learning tracks"
+              value={fmt(CBC?.trackCount)}
+              accent="red"
+              sub={CBC?.since != null ? `Offered since ${CBC.since}` : DASH}
             />
           </Grid2>
         </Card>
 
-        {/* SC Stats */}
+        {/* STEM Camps */}
         <Card>
-          <Heading>{SC.description}</Heading>
+          <Heading>STEM Camps</Heading>
+          <Grid4>
+            <Kpi
+              label="Total enrolments"
+              value={fmt(SC?.uniqueStudents)}
+              accent="purple"
+              sub="Summer and December camps combined. A girl attending both is counted twice."
+            />
+            {hasSsc && (
+              <Kpi
+                label="STEM Summer Camp"
+                value={fmt(SC?.returningParticipations)}
+                accent="blue"
+                sub="Enrolments in the summer camp"
+              />
+            )}
+            {hasDsc && (
+              <Kpi
+                label="December STEM Camps"
+                value={fmt(SC?.returningParticipations)}
+                accent="green"
+                sub="Enrolments in the December camps"
+              />
+            )}
+          </Grid4>
         </Card>
-
-        {/* Bar chart */}
-        <Card>
-          <Heading>Unique Students trained per year</Heading>
-          <BarChart
-            rows={studentCountByYear}
-            labelKey='year'
-            series={[
-              {
-                k: 'count',
-                label: 'Unique Students',
-                c: '#00A3DA',
-              }
-            ]}
-
-          />
-        </Card>
-
-        <SectionHeading>Cost per outcome</SectionHeading>
-        <EmptyState title="No budget figures loaded">
-          Programme cost is the one input needed to turn reach into efficiency. Load annual
-          spend per programme and this becomes cost per student and cost per improved student.
-        </EmptyState>
       </div>
+
+      <SectionHeading>Cost per outcome</SectionHeading>
+      <EmptyState title="Cost per outcome not available yet">
+        Annual spend per programme is needed to calculate cost per student and cost per
+        improved student.
+      </EmptyState>
     </>
   );
 }

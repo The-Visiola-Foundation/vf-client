@@ -398,6 +398,8 @@ export interface BoardData {
   };
   consentRate: string;
   studentCountByYear: { year: number, count: string }[];
+  students: number;
+  countries: {country: string; studentCount: number}[]
 }
 
 export interface Academic {
