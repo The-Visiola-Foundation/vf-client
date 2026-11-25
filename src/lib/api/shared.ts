@@ -59,6 +59,9 @@ export function withParams(path: string, params: object): string {
 export async function getOrFallback<T>(
   path: string,
   init: RequestInit | undefined,
+  transform?: (data: unknown) => T,
 ): Promise<T> {
-  return await apiRequest<T>(path, init ?? {});
+  const data = await apiRequest<unknown>(path, init ?? {});
+  if (transform) return transform(data);
+  return data as T;
 }

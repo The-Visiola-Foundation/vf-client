@@ -1,6 +1,6 @@
 
 import { useState, type FormEvent } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Student } from '../types/mis';
 import { useUpdateStudent } from '../queries/useRegister';

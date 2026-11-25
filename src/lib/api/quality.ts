@@ -17,7 +17,7 @@ import { apiRequest } from './client';
 import { getOrFallback, withParams } from './shared';
 
 export async function fetchQualitySummary(signal?: AbortSignal): Promise<QualitySummary> {
-  return getOrFallback('/mis/quality/summary', { signal }, (s) => ({
+  return getOrFallback('/mis/quality/summary', { signal }, (s: any) => ({
     issues: s.totals.issues,
     errors: s.totals.errors,
     warnings: s.totals.issues - s.totals.errors,
@@ -34,13 +34,13 @@ export async function fetchQualityIssues(
   return getOrFallback(
     withParams('/mis/quality/issues', { severity, field, page, page_size }),
     { signal },
-    (s) => {
+    (s: any) => {
       const rows = s.issues.filter(
         (i: IssueRow) =>
           (!severity || i.severity === severity) && (!field || i.field === field),
       );
       const start = (page - 1) * page_size;
-      return { items: rows.slice(start, start + page_size), total: rows.length, page, page_size };
+      return { data: rows.slice(start, start + page_size), totalCount: rows.length, page, page_size };
     },
   );
 }

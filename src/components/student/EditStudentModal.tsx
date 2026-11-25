@@ -70,7 +70,7 @@ export function EditStudentModal({ student, isOpen, onClose }: EditStudentModalP
 
     try {
       await updateMutation.mutateAsync({
-        id: student.uid,
+        id: String(student.uid),
         payload: {
           firstName: formData.firstName.trim() || null,
           lastName: formData.lastName.trim() || null,
@@ -113,7 +113,7 @@ export function EditStudentModal({ student, isOpen, onClose }: EditStudentModalP
             <h2 id="edit-student-title" className="text-[17px] font-semibold text-ink">
               Edit student record
             </h2>
-            <p className="text-[12.5px] text-muted">ID: {student.uid}</p>
+            <p className="text-[12.5px] text-muted">ID: {String(student.uid)}</p>
           </div>
           <button
             type="button"

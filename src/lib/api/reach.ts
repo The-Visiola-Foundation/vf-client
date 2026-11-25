@@ -3,7 +3,7 @@
  *
  *   GET /stats/reach?year_from=&year_to=&programme= -> ReachPayload
  */
-import type { MisData, ReachParams, ReachPayload, ReachRow, YearlyStat } from '../../types/mis';
+import type { ReachParams, ReachPayload } from '../../types/mis';
 import { getOrFallback, withParams } from './shared';
 
 export async function fetchReach(

@@ -72,7 +72,7 @@ export function useCreateCbcGraduate() {
     mutationFn: (input: NewCbcGraduate) => createCbcGraduate(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cbcGraduates() });
-      qc.invalidateQueries({ queryKey: queryKeys.cbcSummary });
+      qc.invalidateQueries({ queryKey: queryKeys.cbcSummary() });
     },
   });
 }
@@ -85,7 +85,7 @@ export function usePatchCbcGraduate() {
       patchCbcGraduate(vars.id, vars.patch),
     onSuccess: (_data: CbcGraduate) => {
       qc.invalidateQueries({ queryKey: queryKeys.cbcGraduates() });
-      qc.invalidateQueries({ queryKey: queryKeys.cbcSummary });
+      qc.invalidateQueries({ queryKey: queryKeys.cbcSummary() });
     },
   });
 }
@@ -97,7 +97,7 @@ export function useCreateCbcOutcome() {
     mutationFn: (input: NewCbcOutcome) => createCbcOutcome(input),
     onSuccess: (_data: CbcOutcome) => {
       qc.invalidateQueries({ queryKey: queryKeys.cbcOutcomes() });
-      qc.invalidateQueries({ queryKey: queryKeys.cbcSummary });
+      qc.invalidateQueries({ queryKey: queryKeys.cbcSummary() });
     },
   });
 }
@@ -139,10 +139,10 @@ export function useSaveCell() {
     onMutate: (edit: CellEdit) => {
       // 1. Optimistically update paginated register pages in cache
       qc.setQueriesData<RegisterPage>({ queryKey: ['mis', 'students'] }, (old) => {
-        if (!old?.items) return old;
+        if (!old?.data) return old;
         return {
           ...old,
-          items: old.items.map((row) =>
+          data: old.data.map((row: RosterRow) =>
             row.uid === edit.uid ? ({ ...row, [edit.key]: edit.value } as RosterRow) : row,
           ),
         };
@@ -199,7 +199,7 @@ export function useAddStudent() {
     onMutate: () => {
       const previous = qc.getQueryData<MisData>(queryKeys.dashboard);
       if (previous) {
-        const n = previous.roster.filter((r) => r.uid.startsWith('VF-NEW')).length + 1;
+        const n = previous.roster.filter((r) => String(r.uid).startsWith('VF-NEW')).length + 1;
         const row = registerBlankRow(`VF-NEW-${String(n).padStart(4, '0')}`);
         qc.setQueryData<MisData>(queryKeys.dashboard, {
           ...previous,

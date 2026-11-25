@@ -295,7 +295,7 @@ function LegacyRoute({ page, roleLabelText }: { page: string; roleLabelText: str
 function LegacyPage({ page, data }: { page: string; data: MisData }) {
   switch (page) {
     case 'ascg':
-      return <Ascg data={data} />;
+      return <Ascg data={data as unknown as import('../../types/mis').AscgAcademicResponse} year={2025} />;
     case 'quality':
       return <Quality data={data} />;
     default:
@@ -309,7 +309,7 @@ function StaticRoute() {
     case 'cbc':
       return <Cbc data={{ year: 0, total: 0, uniqueCount: 0, tracks: [] }} year={0} />;
     case 'sc':
-      return <SC />;
+      return <SC data={{ year: 0, total: 0, sscCount: 0, dscCount: 0, metrics: [] }} year={0} />;
     default:
       return <Proposed />;
   }

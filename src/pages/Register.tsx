@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { MisData, RegisterData, RosterRow } from '../types/mis';
 import { fmt } from '../lib/format';
 import { Notice } from '../components/ui/primitives';
 import { Eyebrow, Lede, PageTitle } from '../components/ui/layout';
@@ -11,47 +9,17 @@ import {
 import { RegisterTable } from '../components/register/RegisterTable';
 import {
   useAddStudent,
-  useRegisterEdits,
   useRegisterPage,
   useSaveCell,
 } from '../queries/useRegister';
 
-function normalizeApiPageRows(rows: Array<Record<string, unknown>>): RosterRow[] {
-  return rows.map((row) => {
-    const firstName = typeof row.firstName === 'string' ? row.firstName : null;
-    const lastName = typeof row.lastName === 'string' ? row.lastName : null;
-    const dateOfBirth = typeof row.dateOfBirth === 'string' ? row.dateOfBirth : null;
-    const email = typeof row.email === 'string' ? row.email : null;
-    const phone = typeof row.phone === 'string' ? row.phone : null;
-    const school = typeof row.school === 'string' ? row.school : null;
-    const country = typeof row.country === 'string' ? row.country : null;
-
-    return {
-      id: String(row.id ?? ''),
-      legacy: null,
-      match: 'unmatched',
-      dobFlag: false,
-      firstName: firstName,
-      lastName: lastName,
-      dob: dateOfBirth,
-      email,
-      phone,
-      school,
-      country
-
-    };
-  });
-}
-
-export function Register({ data }: { data?: RegisterData | MisData }) {
+export function Register() {
   const [params, setParams] = useSearchParams();
 
   const text = params.get('name') ?? params.get('q') ?? '';
   const page = Number(params.get('page') ?? '1') || 1;
   const pageSize = Number(params.get('limit') ?? params.get('page_size') ?? '20') || 20;
 
-  const { data: dirtyKeys = [] } = useRegisterEdits();
-  const dirty = useMemo(() => new Set(dirtyKeys), [dirtyKeys]);
   const saveCell = useSaveCell();
   const addStudent = useAddStudent();
 
@@ -68,7 +36,6 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
     const currentPage = query.data?.page ?? page;
     const totalPages = query.data?.totalPages!;
 
-    const saving = saveCell.isPending || addStudent.isPending;
     const mutationError = saveCell.error ?? addStudent.error;
 
     function applyPatch(patch: Partial<RegisterFilters>) {
@@ -102,11 +69,6 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
     }
 
 
-    function onAdd() {
-      addStudent.mutate();
-      applyPatch({ text: '' });
-    }
-
     function onPageChange(nextPage: number) {
       const next = new URLSearchParams(params);
       const limit = Number(params.get('limit') ?? params.get('page_size') ?? 20) || 20;
@@ -129,7 +91,6 @@ export function Register({ data }: { data?: RegisterData | MisData }) {
           filters={{ text }}
           busy={addStudent.isPending}
           onChange={applyPatch}
-          onAdd={onAdd}
         />
 
         {mutationError ? (

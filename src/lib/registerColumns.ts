@@ -28,6 +28,7 @@ export const COLS: ColumnDef[] = [
 /** A fresh, fully blank student row, matching the original "Add student". */
 export function registerBlankRow(uid: string): RosterRow {
   return {
+    id: uid,
     uid,
     legacy: null,
     match: 'unmatched',

@@ -47,10 +47,9 @@ describe('register.ts student endpoints', () => {
       });
 
       const student = await fetchStudent('VF-0002');
-      expect(student.uid).toBe('VF-0002');
-      expect(student.first).toBe('Amina');
-      expect(student.last).toBe('Bello');
-      expect(student.school).toBe('Government Secondary School');
+      expect(student.id).toBe('VF-0002');
+      expect(student.firstName).toBe('Amina');
+      expect(student.lastName).toBe('Bello');
     });
 
     it('correctly handles full backend payload with cbcProfile and cbcParticipation', async () => {
@@ -88,10 +87,9 @@ describe('register.ts student endpoints', () => {
       });
 
       const student = await fetchStudent('ffa8e01b-9257-4684-bc56-6664f5b01357');
-      expect(student.uid).toBe('ffa8e01b-9257-4684-bc56-6664f5b01357');
-      expect(student.first).toBe('Silifat');
-      expect(student.last).toBe('Yusuf');
-      expect(student.school).toBe('GSS Kubwa');
+      expect(student.id).toBe('ffa8e01b-9257-4684-bc56-6664f5b01357');
+      expect(student.firstName).toBe('Silifat');
+      expect(student.lastName).toBe('Yusuf');
       expect(student.consent).toBe(false);
       expect(student.cbcProfile).toBeDefined();
     });

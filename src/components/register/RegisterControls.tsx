@@ -13,13 +13,11 @@ export function RegisterControls({
   filters,
   busy = false,
   onChange,
-  onAdd,
 
 }: {
   filters: RegisterFilters;
   busy?: boolean;
   onChange: (patch: Partial<RegisterFilters>) => void;
-  onAdd: () => void;
 
 }) {
   const [local, setLocal] = useState(filters.text);

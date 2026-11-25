@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { RegisterTable } from './RegisterTable';
 
 describe('RegisterTable', () => {
@@ -12,6 +12,7 @@ describe('RegisterTable', () => {
         <RegisterTable
           rows={[
             {
+              id: 'VF-123',
               uid: 'VF-123',
               first: 'Ada',
               last: 'Lovelace',
@@ -42,8 +43,6 @@ describe('RegisterTable', () => {
               band: null,
             },
           ]}
-          dirty={new Set()}
-          onCommit={vi.fn()}
         />
       </MemoryRouter>,
     );

@@ -46,8 +46,6 @@ export function Ascg({
     ? Math.ceil(Math.max(...vals) * 10) / 10 + 0.2
     : 5;
 
-  const cohort = summary.totalParticipation ?? 0;
-
   const term1Pct = parsePercent(gpaTrend[0]?.percentage);
   const term2Pct = parsePercent(gpaTrend[1]?.percentage);
   const term3Pct = parsePercent(gpaTrend[2]?.percentage);

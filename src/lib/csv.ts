@@ -18,9 +18,12 @@ export function buildRegisterEditsCsv(
 ): string | null {
   const keys = COLS.filter((c) => !c.derived).map((c) => c.k as keyof RosterRow);
   const changed = new Set(
-    dirtyKeys.map((d) => (typeof d === 'string' ? d.split('|')[0] : d.uid)),
+    dirtyKeys.map((d) => {
+      if (typeof d === 'string') return d.split('|')[0];
+      return d.uid;
+    }),
   );
-  const rows = roster.filter((r) => changed.has(r.uid));
+  const rows = roster.filter((r) => changed.has(String(r.uid)));
 
   if (rows.length === 0) return null;
 

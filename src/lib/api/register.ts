@@ -59,24 +59,6 @@ export async function fetchSchools(signal?: AbortSignal): Promise<string[]> {
   return getOrFallback('/schools', { signal });
 }
 
-function applyRegisterFilters(
-  rows: RosterRow[],
-  f: RegisterFilters,
-): { rows: RosterRow[]; total: number } {
-  const q = (f.name ?? '').trim().toLowerCase();
-  const filtered = rows.filter((r) => {
-    if (f.school && r.school !== f.school) return false;
-    if (f.match && r.match !== f.match) return false;
-    if (f.missing_consent && r.consent) return false;
-    if (q) {
-      const hay = `${r.uid} ${r.last ?? ''} ${r.first ?? ''} ${r.school ?? ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  return { rows: filtered, total: filtered.length };
-}
-
 type StudentApiRow = {
   id: string;
   firstName: string | null;
@@ -87,15 +69,6 @@ type StudentApiRow = {
   phone: string | null;
   country: string | null;
   school: string | null;
-};
-
-type StudentPageApiResponse = {
-  data?: StudentApiRow[];
-  total?: number;
-  page?: number;
-  limit?: number;
-  page_size?: number;
-  totalPages?: number;
 };
 
 function normalizeStudentApiRow(row: StudentApiRow & Record<string, unknown>): RosterRow {
@@ -226,7 +199,8 @@ export async function updateStudent(
   const s = await loadSnapshot();
   const existing = s.roster.find((r) => r.uid === id);
   const updated: RosterRow = {
-    ...(existing ?? { uid: id }),
+    id,
+    ...(existing ?? {}),
     ...payload,
     first: payload.firstName ?? payload.first ?? existing?.first,
     last: payload.lastName ?? payload.last ?? existing?.last,

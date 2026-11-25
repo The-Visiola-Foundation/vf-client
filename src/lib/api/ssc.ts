@@ -14,18 +14,12 @@
  */
 import { SCResponse } from '../../types/mis';
 import type {
-  SscCampsResponse,
   SscCompareResponse,
   SscImpactPayload,
   SscYearRollup,
 } from '../../types/ssc';
 import { apiRequest } from './client';
 import { getOrFallback, withParams } from './shared';
-
-const EMPTY_CAMPS: SscCampsResponse = [];
-const EMPTY_IMPACT: SscImpactPayload | null = null;
-const EMPTY_ROLLUP: SscYearRollup | null = null;
-const EMPTY_COMPARE: SscCompareResponse = [];
 
 /** All camps, with a `hasResults` flag the UI uses to pick its view. */
 export async function fetchSscCamps(

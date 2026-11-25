@@ -51,7 +51,7 @@ export async function fetchCbcGraduates(
   signal?: AbortSignal,
 ): Promise<Paged<CbcGraduate>> {
   if (!isBackendConfigured) {
-    return { items: [], total: 0, page: params.page ?? 1, page_size: params.page_size ?? 25 };
+    return { data: [], totalCount: 0, page: params.page ?? 1, page_size: params.page_size ?? 25 };
   }
   return apiRequest<Paged<CbcGraduate>>(withParams('/mis/cbc/graduates', params), { signal });
 }
