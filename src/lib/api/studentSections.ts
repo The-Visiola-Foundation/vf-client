@@ -29,8 +29,8 @@ export interface AscgProfilePayload {
   motherFirstName?: Nullable<string>;
   motherPhone?: Nullable<string>;
   motherEducation?: Nullable<string>;
-  numberOfBrothers?: Nullable<number>;
-  numberOfSisters?: Nullable<number>;
+  numberOfBrothers?: Nullable<string>;
+  numberOfSisters?: Nullable<string>;
   positionInFamily?: Nullable<string>;
   specialization?: Nullable<string>;
   favouriteSubject?: Nullable<string>;
