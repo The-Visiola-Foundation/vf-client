@@ -20,7 +20,9 @@ import {
   patchCbcGraduate,
   resolveQualityIssue,
   saveRegisterCell,
+  saveStudentSection,
   updateStudent,
+  type StudentSectionSaveInput,
   type UpdateStudentPayload,
 } from '../lib/api';
 import { queryKeys } from './keys';
@@ -254,6 +256,19 @@ export function useUpdateStudent() {
     },
     onSettled: (_data, _err, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.student(id) });
+      qc.invalidateQueries({ queryKey: ['mis', 'students'] });
+    },
+  });
+}
+
+/** Saves a student profile or programme enrolment, then refreshes dependent views. */
+export function useSaveStudentSection() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: StudentSectionSaveInput) => saveStudentSection(input),
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: queryKeys.student(input.studentId) });
       qc.invalidateQueries({ queryKey: ['mis', 'students'] });
     },
   });

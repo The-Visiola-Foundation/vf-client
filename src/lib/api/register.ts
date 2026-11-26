@@ -14,6 +14,7 @@ import type {
   RegisterFilters,
   RegisterPage,
   RosterRow,
+  School,
   Student,
 } from '../../types/mis';
 import { buildRegisterEditsCsv } from '../csv';
@@ -22,41 +23,14 @@ import { API_BASE_URL, isBackendConfigured } from './config';
 import { api, apiRequest } from './client';
 import { getOrFallback, loadSnapshot, withParams } from './shared';
 
-type SchoolApiItem = {
-  id?: string;
-  school?: string | null;
-  name?: string | null;
-  schoolCode?: string | null;
-  category?: string | null;
-  program?: string | null;
-};
-
-function normalizeSchoolNames(raw: unknown): string[] {
-  const items = Array.isArray(raw) ? raw.flat(Infinity) : [];
-  return items
-    .map((item) => {
-      if (typeof item === 'string') return item;
-      if (item && typeof item === 'object') {
-        const school = item as SchoolApiItem;
-        return school.school ?? school.name ?? school.id ?? '';
-      }
-      return '';
-    })
-    .filter(Boolean) as string[];
-}
-
 /** v0 monolith accessor — the whole snapshot until per-page splits land. */
 export async function fetchDashboard(signal?: AbortSignal): Promise<MisData> {
   return getOrFallback('/stats/overview', { signal });
 }
 
-export async function fetchSchools(signal?: AbortSignal): Promise<string[]> {
-  if (isBackendConfigured) {
-    const raw = await apiRequest<unknown>('/schools', { signal });
-    return normalizeSchoolNames(raw);
-  }
+export async function fetchSchools(signal?: AbortSignal): Promise<School[]> {
+    return await apiRequest<School[]>('/schools', { signal });
 
-  return getOrFallback('/schools', { signal });
 }
 
 type StudentApiRow = {
@@ -142,7 +116,9 @@ export async function fetchRegisterPage(
 
 export async function fetchStudent(uid: string, signal?: AbortSignal): Promise<Student> {
   const path = `/students/${encodeURIComponent(uid)}`;
-
+  if (isBackendConfigured) {
+    return api.get<Student>(path, { signal });
+  }
   return getOrFallback(path, { signal });
 }
 

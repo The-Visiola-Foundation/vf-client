@@ -2,7 +2,14 @@ import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'reac
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Student } from '../types/mis';
-import { useSchools, useUpdateStudent } from '../queries/useRegister';
+import { useSaveStudentSection, useSchools, useUpdateStudent } from '../queries/useRegister';
+import type {
+  AscgParticipationPayload,
+  AscgProfilePayload,
+  CbcParticipationPayload,
+  CbcProfilePayload,
+  ScParticipationPayload,
+} from '../lib/api';
 import { queryOptionFactories } from '../queries/options';
 import { ageOf, fmt } from '../lib/format';
 import { Eyebrow, Grid4, Heading, PageTitle } from '../components/ui/layout';
@@ -28,6 +35,7 @@ type SectionEditorType = Exclude<EditorType, 'student'>;
 
 interface ParticipationRecord {
   id: string;
+  entityId: number;
   program: 'ASCG' | 'CBC' | 'SC';
   year: number | string;
   detail: string;
@@ -121,16 +129,22 @@ function consentLabel(value: boolean | null | undefined) {
  * Adjust here if your hook returns a different shape.
  */
 function toSchoolOptions(data: unknown): SchoolOption[] {
-  if (!Array.isArray(data)) return [];
-  return data
-    .map((s) => {
-      const row = s as Record<string, unknown>;
+  const items = Array.isArray(data) ? data : data ? [data] : [];
+
+  return items
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const outer = item as Record<string, unknown>;
+      const row =
+        outer.json && typeof outer.json === 'object'
+          ? (outer.json as Record<string, unknown>)
+          : outer;
       return {
         id: String(row.id ?? ''),
         name: String(row.name ?? row.schoolName ?? row.school ?? ''),
       };
     })
-    .filter((s) => s.id && s.name)
+    .filter((school): school is SchoolOption => Boolean(school?.id && school.name))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -153,6 +167,7 @@ function extractParticipations(student: Student): ParticipationRecord[] {
   for (const p of student.ascgParticipation ?? []) {
     records.push({
       id: `ascg-${p.id}`,
+      entityId: p.id,
       program: 'ASCG',
       year: p.year,
       detail: [p.type || 'Afterschool STEM Club', p.class ? `Class ${p.class}` : null]
@@ -167,6 +182,7 @@ function extractParticipations(student: Student): ParticipationRecord[] {
   for (const p of student.cbcParticipation ?? []) {
     records.push({
       id: `cbc-${p.id}`,
+      entityId: p.id,
       program: 'CBC',
       year: p.year,
       detail: [p.track || 'Track not specified', formatCohort(p.cohort)]
@@ -181,6 +197,7 @@ function extractParticipations(student: Student): ParticipationRecord[] {
   for (const p of student.scParticipation ?? []) {
     records.push({
       id: `sc-${p.id}`,
+      entityId: p.id,
       program: 'SC',
       year: p.year,
       detail: [formatCampType(p.type), p.theme || null].filter(Boolean).join(' · '),
@@ -263,6 +280,7 @@ function SectionAction({
 
 const sectionFields: Record<SectionEditorType, FormField[]> = {
   'ascg-profile': [
+    { name: 'schoolId', label: 'School', type: 'school' },
     { name: 'fatherFirstName', label: 'Father first name' },
     { name: 'fatherLastName', label: 'Father last name' },
     { name: 'fatherPhone', label: 'Father phone', type: 'tel' },
@@ -280,11 +298,13 @@ const sectionFields: Record<SectionEditorType, FormField[]> = {
     { name: 'careerChoice1', label: 'Career aspiration 1' },
     { name: 'careerChoice2', label: 'Career aspiration 2' },
     { name: 'parentalConsent', label: 'Parental consent', type: 'checkbox' },
+    { name: 'year', label: 'Year', type: 'number' },
   ],
   'cbc-profile': [
     { name: 'school', label: 'School' },
     { name: 'priorTechEducation', label: 'Prior technology education' },
     { name: 'priorTechExperience', label: 'Prior technology experience' },
+    { name: 'track', label: 'Track' },
     { name: 'completedProgram', label: 'Completed programme', type: 'checkbox' },
     { name: 'outcomeAt6Months', label: 'Outcome at 6 months' },
     { name: 'outcomeAt12Months', label: 'Outcome at 12 months' },
@@ -292,21 +312,22 @@ const sectionFields: Record<SectionEditorType, FormField[]> = {
     { name: 'company', label: 'Company or employer' },
     { name: 'industry', label: 'Industry' },
     { name: 'techEngagementLevel', label: 'Technology engagement level' },
+    { name: 'cohort', label: 'Cohort', options: ['one', 'two', 'weekend'] },
   ],
   'ascg-participation': [
     { name: 'schoolId', label: 'School', type: 'school' },
-    { name: 'type', label: 'Type' },
-    { name: 'class', label: 'Class' },
+    { name: 'type', label: 'Type', options: ['ASCG', 'CBC', 'SC', 'OUTREACH'] },
     { name: 'year', label: 'Year', type: 'number' },
   ],
   'cbc-participation': [
-    { name: 'cohort', label: 'Cohort' },
+    { name: 'cohort', label: 'Cohort', options: ['one', 'two', 'weekend'] },
+    { name: 'track', label: 'Track' },
     { name: 'trackId', label: 'Track ID' },
     { name: 'year', label: 'Year', type: 'number' },
   ],
   'sc-participation': [
-    { name: 'theme', label: 'Camp theme' },
-    { name: 'type', label: 'Camp' },
+    { name: 'school', label: 'School' },
+    { name: 'type', label: 'Camp', options: ['ssc', 'dsc'] },
     { name: 'year', label: 'Year', type: 'number' },
   ],
 };
@@ -551,6 +572,7 @@ function SectionFormModal({
 }) {
   const fields = sectionFields[type];
   const [error, setError] = useState<string | null>(null);
+  const saveSection = useSaveStudentSection();
 
   const existingValues: Record<string, unknown> = (() => {
     switch (type) {
@@ -563,7 +585,13 @@ function SectionFormModal({
     }
   })();
 
-  const isEditing = Object.keys(existingValues).length > 0;
+  const recordId =
+    type === 'ascg-profile'
+      ? student.ascgProfile?.id
+      : type === 'cbc-profile'
+        ? student.cbcProfile?.id
+        : record?.entityId;
+  const isEditing = recordId !== undefined;
 
   const [form, setForm] = useState<Record<string, string | boolean>>(() =>
     Object.fromEntries(
@@ -585,14 +613,118 @@ function SectionFormModal({
     setForm((previous) => ({ ...previous, [name]: value }));
   }
 
-  function submit(e: FormEvent) {
+  const optionalString = (name: string) => {
+    const value = form[name];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  };
+  const optionalNumber = (name: string) => {
+    const value = optionalString(name);
+    if (value === null) return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
+  const requiredYear = () => {
+    const year = optionalNumber('year');
+    return year !== null && Number.isInteger(year) && year > 0 ? year : null;
+  };
+
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
-    // Saving for profiles and enrolments is not wired to the API yet.
-    // When it is: call the mutation here, then onClose(true).
-    // Note: school select values are strings (school ids). Convert with Number() if the API expects numbers.
-    setError('Saving this section is not connected to the API yet, so nothing was saved.');
+    const year = requiredYear();
+    if (
+      (type === 'ascg-participation' && !optionalString('schoolId')) ||
+      ((type === 'ascg-participation' || type === 'cbc-participation' || type === 'sc-participation') &&
+        year === null)
+    ) {
+      setError(
+        type === 'ascg-participation'
+          ? 'Select a school and enter a valid year.'
+          : 'Enter a valid year.',
+      );
+      return;
+    }
+
+    try {
+      switch (type) {
+        case 'ascg-profile': {
+          const payload: AscgProfilePayload = {
+            schoolId: optionalString('schoolId'),
+            fatherFirstName: optionalString('fatherFirstName'),
+            fatherLastName: optionalString('fatherLastName'),
+            fatherPhone: optionalString('fatherPhone'),
+            fatherEducation: optionalString('fatherEducation'),
+            motherFirstName: optionalString('motherFirstName'),
+            motherLastName: optionalString('motherLastName'),
+            motherPhone: optionalString('motherPhone'),
+            motherEducation: optionalString('motherEducation'),
+            numberOfBrothers: optionalNumber('numberOfBrothers'),
+            numberOfSisters: optionalNumber('numberOfSisters'),
+            positionInFamily: optionalString('positionInFamily'),
+            specialization: optionalString('specialization'),
+            favouriteSubject: optionalString('favouriteSubject'),
+            mostDifficultSubject: optionalString('mostDifficultSubject'),
+            careerChoice1: optionalString('careerChoice1'),
+            careerChoice2: optionalString('careerChoice2'),
+            parentalConsent: Boolean(form.parentalConsent),
+          };
+          await saveSection.mutateAsync({ type, studentId: student.id, recordId, payload });
+          break;
+        }
+        case 'cbc-profile': {
+          const payload: CbcProfilePayload = {
+            school: optionalString('school'),
+            priorTechEducation: optionalString('priorTechEducation'),
+            priorTechExperience: optionalString('priorTechExperience'),
+            track: optionalString('track'),
+            completedProgram: Boolean(form.completedProgram),
+            outcomeAt6Months: optionalString('outcomeAt6Months'),
+            outcomeAt12Months: optionalString('outcomeAt12Months'),
+            roleTitle: optionalString('roleTitle'),
+            company: optionalString('company'),
+            industry: optionalString('industry'),
+            techEngagementLevel: optionalString('techEngagementLevel'),
+            cohort: optionalString('cohort'),
+          };
+          await saveSection.mutateAsync({ type, studentId: student.id, recordId, payload });
+          break;
+        }
+        case 'ascg-participation': {
+          const payload: AscgParticipationPayload = {
+            schoolId: optionalString('schoolId')!,
+            type: optionalString('type'),
+            year: year!,
+          };
+          await saveSection.mutateAsync({ type, studentId: student.id, recordId, payload });
+          break;
+        }
+        case 'cbc-participation': {
+          const payload: CbcParticipationPayload = {
+            track: optionalString('track'),
+            trackId: optionalString('trackId'),
+            cohort: optionalString('cohort'),
+            year: year!,
+          };
+          await saveSection.mutateAsync({ type, studentId: student.id, recordId, payload });
+          break;
+        }
+        case 'sc-participation': {
+          const payload: ScParticipationPayload = {
+            school: optionalString('school'),
+            type: optionalString('type'),
+            year: year!,
+          };
+          await saveSection.mutateAsync({ type, studentId: student.id, recordId, payload });
+          break;
+        }
+      }
+      onClose(true);
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message ? err.message : 'The changes could not be saved. Try again.',
+      );
+    }
   }
 
   const title = `${isEditing ? 'Edit' : 'Add'} ${editorTitles[type]}`;
@@ -657,6 +789,24 @@ function SectionFormModal({
                         ))}
                       </select>
                     </>
+                  ) : field.options ? (
+                    <>
+                      <span className="mb-1 block text-[12px] font-semibold text-ink-2">
+                        {field.label}
+                      </span>
+                      <select
+                        value={current}
+                        onChange={(e) => setField(field.name, e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">Not recorded</option>
+                        {field.options.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </>
                   ) : (
                     <>
                       <span className="mb-1 block text-[12px] font-semibold text-ink-2">
@@ -685,8 +835,8 @@ function SectionFormModal({
 
         <ModalFooter
           onCancel={() => onClose(false)}
-          saving={false}
-          submitLabel={isEditing ? 'Save changes' : 'Add enrolment'}
+          saving={saveSection.isPending}
+          submitLabel={isEditing ? 'Save changes' : 'Add record'}
         />
       </form>
     </ModalShell>

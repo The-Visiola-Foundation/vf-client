@@ -14,6 +14,21 @@ import { BarChart, StackBar } from '../components/ui/charts';
 
 const DASH = '–';
 
+/**
+ * KPI accent colours.
+ * Each programme has one colour, used for every KPI in its card, so a colour
+ * means "this programme". Outcome and status KPIs are the exception:
+ * green = good result / consent on file, red = data gap.
+ */
+const ACCENT = {
+  overall: 'blue',
+  ascg: 'blue',
+  cbc: 'purple',
+  sc: 'green',
+  good: 'green',
+  gap: 'red',
+} as const;
+
 // "south africa" -> "South Africa"
 const titleCase = (value: string) =>
   value
@@ -23,7 +38,7 @@ const titleCase = (value: string) =>
     .join(' ');
 
 export function Board({ data }: { data: BoardData }) {
-  const { ASCG, CBC, SC, consentRate, studentCountByYear } = data;
+  const { ASCG, CBC, SC, consent, studentCountByYear } = data;
   const schools = ASCG?.schools;
   const since = ASCG?.since;
 
@@ -47,12 +62,14 @@ export function Board({ data }: { data: BoardData }) {
   ].map(titleCase);
 
   // ---- Parental consent: "not recorded" is different from 0% ----------------
-  const consentRecorded =
-    consentRate !== null && consentRate !== undefined && String(consentRate).trim() !== '';
+  // consentRate is a number. null/undefined means no data yet; 0 is a real 0%.
+  const consentRate = consent?.consentRate;
+  const consentRecorded = consentRate !== null && consentRate !== undefined;
+  const consentText = consentRecorded ? `${consentRate}%` : 'Not recorded';
 
   // ---- STEM Camps -----------------------------------------------------------
-  const hasSsc = Number(SC?.uniqueStudents) > 0;
-  const hasDsc = Number(SC?.returningParticipations) > 0;
+  const hasSsc = Number(SC?.sscEnrolments) > 0;
+  const hasDsc = Number(SC?.dscEnrolments) > 0;
 
   return (
     <>
@@ -68,13 +85,13 @@ export function Board({ data }: { data: BoardData }) {
         <Kpi
           label="Unique students"
           value={fmt(data.students)}
-          accent="blue"
+          accent={ACCENT.overall}
           sub="Each girl counted once, across all years and programmes"
         />
         <Kpi
           label="Countries"
           value={fmt(countries.length)}
-          accent="purple"
+          accent={ACCENT.overall}
           sub={countries.length ? countries.join(', ') : DASH}
         />
       </Grid2>
@@ -105,13 +122,13 @@ export function Board({ data }: { data: BoardData }) {
               label="ASCG · unique students"
               value={fmt(ASCG?.uniqueStudents ?? 0)}
               sub={since != null ? `Since ${since}` : 'Start year not recorded'}
-              accent="blue"
+              accent={ACCENT.ascg}
             />
             <Kpi
               label="Schools"
               value={schools != null ? fmt(schools) : DASH}
               sub="Schools reached in the FCT"
-              accent="green"
+              accent={ACCENT.ascg}
             />
             <Kpi
               label="Improved GPA, term 1 to 3"
@@ -121,25 +138,23 @@ export function Board({ data }: { data: BoardData }) {
                   ? `${academic.year} cohort · n = ${fmt(studentsAnalysed)} students with both terms`
                   : 'No academic results yet'
               }
-              accent="purple"
+              accent={hasAcademic ? ACCENT.good : ACCENT.ascg}
             />
             <Kpi
               label="Parental consent on file"
-              value={consentRecorded ? String(consentRate) : 'Not recorded'}
+              value={consentText}
               sub={
                 consentRecorded
                   ? 'Of ASCG students, parental consent on file'
                   : 'Consent is not yet captured in the register'
               }
-              accent={consentRecorded ? 'green' : 'red'}
+              accent={consentRecorded ? ACCENT.good : ACCENT.gap}
             />
           </Grid4>
 
           {hasAcademic && (
-            <>
-              <SectionHeading>
-                Change in GPA, term 1 to term 3 · {academic.year} cohort
-              </SectionHeading>
+            <div className="mt-4">
+              <Heading>Change in GPA, term 1 to term 3 · {academic.year} cohort</Heading>
               <StackBar
                 total={studentsAnalysed}
                 segments={[
@@ -148,7 +163,7 @@ export function Board({ data }: { data: BoardData }) {
                   { label: 'Declined', v: academic.declined, c: '#D8232A' },
                 ]}
               />
-            </>
+            </div>
           )}
         </Card>
 
@@ -159,13 +174,13 @@ export function Board({ data }: { data: BoardData }) {
             <Kpi
               label="Coding Boot Camp · unique students"
               value={fmt(CBC?.uniqueStudents)}
-              accent="green"
+              accent={ACCENT.cbc}
               sub={CBC?.since != null ? `Since ${CBC.since}` : 'Start year not recorded'}
             />
             <Kpi
               label="Learning tracks"
               value={fmt(CBC?.trackCount)}
-              accent="red"
+              accent={ACCENT.cbc}
               sub={CBC?.since != null ? `Offered since ${CBC.since}` : DASH}
             />
           </Grid2>
@@ -176,28 +191,47 @@ export function Board({ data }: { data: BoardData }) {
           <Heading>STEM Camps</Heading>
           <Grid4>
             <Kpi
-              label="Total enrolments"
+              label="Unique students"
               value={fmt(SC?.uniqueStudents)}
-              accent="purple"
-              sub="Summer and December camps combined. A girl attending both is counted twice."
+              accent={ACCENT.sc}
+              sub="Each girl counted once, across summer and December camps"
             />
-            {hasSsc && (
-              <Kpi
-                label="STEM Summer Camp"
-                value={fmt(SC?.returningParticipations)}
-                accent="blue"
-                sub="Enrolments in the summer camp"
-              />
-            )}
-            {hasDsc && (
-              <Kpi
-                label="December STEM Camps"
-                value={fmt(SC?.returningParticipations)}
-                accent="green"
-                sub="Enrolments in the December camps"
-              />
-            )}
+            <Kpi
+              label="Total enrolments"
+              value={fmt(SC?.totalEnrolments)}
+              accent={ACCENT.sc}
+              sub="A girl attending more than one camp is counted each time"
+            />
+            <Kpi
+              label="Students with repeat enrolments"
+              value={fmt(SC?.studentsWithRepeatEnrolments)}
+              accent={ACCENT.sc}
+              sub="Girls who attended more than one camp"
+            />
           </Grid4>
+
+          {(hasSsc || hasDsc) && (
+            <div className="mt-3.5">
+              <Grid2>
+                {hasSsc && (
+                  <Kpi
+                    label="STEM Summer Camp"
+                    value={fmt(SC?.sscEnrolments)}
+                    accent={ACCENT.sc}
+                    sub="Enrolments in the summer camp"
+                  />
+                )}
+                {hasDsc && (
+                  <Kpi
+                    label="December STEM Camps"
+                    value={fmt(SC?.dscEnrolments)}
+                    accent={ACCENT.sc}
+                    sub="Enrolments in the December camps"
+                  />
+                )}
+              </Grid2>
+            </div>
+          )}
         </Card>
       </div>
 

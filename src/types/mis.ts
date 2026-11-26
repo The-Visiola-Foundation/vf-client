@@ -390,16 +390,23 @@ export interface BoardData {
 
   SC: {
     uniqueStudents: number;
-    totalParticipations: number;
-    returningParticipations: number;
+    totalEnrolments: number;
+    studentsWithRepeatEnrolments: number;
     since: number | null;
     program: string;
     description: string;
+    sscEnrolments: number;
+    dscEnrolments: number;
   };
-  consentRate: string;
   studentCountByYear: { year: number, count: string }[];
   students: number;
-  countries: {country: string; studentCount: number}[]
+  countries: { country: string; studentCount: number }[],
+  consent: {
+    totalStudents: number,
+    studentsWithConsent: number,
+    consentRate: number
+  }
+
 }
 
 export interface Academic {
@@ -560,6 +567,7 @@ export interface ASCGProfile {
   careerChoice1: string | null;
   careerChoice2: string | null;
   parentalConsent: boolean | null;
+  year: number | null;
 }
 
 export interface CBCProfile {
@@ -575,6 +583,8 @@ export interface CBCProfile {
   company: string | null;
   industry: string | null;
   techEngagementLevel: string | null;
+  track: string | null;
+  cohort: string | null;
 }
 
 export interface ASCGParticipation {
@@ -602,4 +612,11 @@ export interface SCParticipation {
   theme: string;
   type: string;
   year: number;
+}
+
+export interface School {
+  id: string;
+  school: string;
+  schoolCode: string;
+  category: 'junior' | 'senior';
 }

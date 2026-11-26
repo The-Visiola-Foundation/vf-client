@@ -7,7 +7,7 @@ export * from './reach';
 export * from './ascg';
 export * from './cbc';
 export * from './register';
+export * from './studentSections';
 export * from './quality';
 export * from './board';
 export * from './ssc';
-

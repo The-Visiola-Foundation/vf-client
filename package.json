@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "vitest run",
+    "test": "vitest run --config vite.config.ts",
     "preview": "vite preview",
     "extract-data": "node scripts/extract-data.mjs"
   },
