@@ -1,6 +1,6 @@
 import type { BoardData } from '../types/mis';
 import { fmt } from '../lib/format';
-import { Card, EmptyState, Kpi } from '../components/ui/primitives';
+import { Card, Kpi } from '../components/ui/primitives';
 import {
   Eyebrow,
   Grid2,
