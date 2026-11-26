@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { RosterRow } from '../../types/mis';
 import { ageOf } from '../../lib/format';
 import { Cell } from '../ui/primitives';
@@ -28,6 +28,7 @@ export function RegisterTable({
   rows: RosterRow[];
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <>
@@ -77,7 +78,12 @@ export function RegisterTable({
                 <Td>
                   <button
                     type="button"
-                    onClick={() => navigate(`/students/${encodeURIComponent(r.id)}`)}
+                    onClick={() =>
+                      navigate({
+                        pathname: `/students/${encodeURIComponent(r.id)}`,
+                        search: location.search,
+                      })
+                    }
                     className="rounded-[7px] border border-line-2 bg-card px-3 py-1.5 text-[12px] font-semibold text-ink transition hover:border-vf-blue hover:text-vf-blue"
                   >
                     View student details

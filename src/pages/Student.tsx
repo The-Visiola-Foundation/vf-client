@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { Student } from '../types/mis';
 import { useSaveStudentSection, useSchools, useUpdateStudent } from '../queries/useRegister';
 import type {
@@ -848,6 +848,7 @@ function SectionFormModal({
 export function StudentPage({ studentId: explicitId }: { studentId?: string }) {
   const { studentId: pathId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const id = explicitId ?? pathId ?? '';
 
@@ -904,7 +905,7 @@ export function StudentPage({ studentId: explicitId }: { studentId?: string }) {
         </Notice>
         <button
           type="button"
-          onClick={() => navigate('/register')}
+          onClick={() => navigate({ pathname: '/register', search: location.search })}
           className="mt-4 rounded-[7px] border border-line-2 bg-card px-3 py-2 text-[12px] font-semibold text-ink"
         >
           ← Back to register
@@ -1023,7 +1024,7 @@ export function StudentPage({ studentId: explicitId }: { studentId?: string }) {
 
         <button
           type="button"
-          onClick={() => navigate('/register')}
+          onClick={() => navigate({ pathname: '/register', search: location.search })}
           className="rounded-[7px] border border-line-2 bg-card px-3 py-2 text-[12px] font-semibold text-ink hover:bg-paper"
         >
           ← Back to register

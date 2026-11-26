@@ -1,14 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { RegisterTable } from './RegisterTable';
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>;
+}
 
 describe('RegisterTable', () => {
   it('shows a student detail action and hides the removed columns', async () => {
     const user = userEvent.setup();
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/register?name=Ada&page=2&limit=20']}>
         <RegisterTable
           rows={[
             {
@@ -44,6 +49,7 @@ describe('RegisterTable', () => {
             },
           ]}
         />
+        <LocationProbe />
       </MemoryRouter>,
     );
 
@@ -53,5 +59,8 @@ describe('RegisterTable', () => {
     const viewButton = screen.getByRole('button', { name: 'View student details' });
     expect(viewButton).toBeTruthy();
     await user.click(viewButton);
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/students/VF-123?name=Ada&page=2&limit=20',
+    );
   });
 });
