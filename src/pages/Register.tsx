@@ -11,7 +11,6 @@ import {
 import { RegisterTable } from '../components/register/RegisterTable';
 import {
   useRegisterPage,
-  useSaveCell,
 } from '../queries/useRegister';
 
 export function Register(_props: { data?: RegisterData | MisData }) {
@@ -20,8 +19,6 @@ export function Register(_props: { data?: RegisterData | MisData }) {
   const text = params.get('name') ?? params.get('q') ?? '';
   const page = Number(params.get('page') ?? '1') || 1;
   const pageSize = Number(params.get('limit') ?? params.get('page_size') ?? '20') || 20;
-
-  const saveCell = useSaveCell();
 
   const query = useRegisterPage({
     name: text,
@@ -71,7 +68,6 @@ export function Register(_props: { data?: RegisterData | MisData }) {
     setParams(next, { replace: true });
   }
 
-  const mutationError = saveCell.error;
   const isInitialLoad = query.isLoading && !query.data;
   const rows = query.data?.data ?? [];
   const total = query.data?.totalCount ?? 0;
@@ -100,17 +96,6 @@ export function Register(_props: { data?: RegisterData | MisData }) {
         >
           <div className="h-full w-1/4 animate-[fetch-bar_1.1s_ease-in-out_infinite] bg-vf-blue" />
         </div>
-      ) : null}
-
-      {mutationError ? (
-        <Notice variant="err" title="A change could not be saved">
-          <p>
-            {mutationError instanceof Error
-              ? mutationError.message
-              : String(mutationError)}
-            . The edit was rolled back.
-          </p>
-        </Notice>
       ) : null}
 
       {query.isError && !query.data ? (

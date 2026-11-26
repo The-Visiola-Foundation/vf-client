@@ -3,6 +3,7 @@ import type { RosterRow } from '../../types/mis';
 import { ageOf } from '../../lib/format';
 import { Cell } from '../ui/primitives';
 import { Table, TableWrap, Td, TdNum, Th, Tr } from '../ui/table';
+import { CircleCheckBig} from 'lucide-react'
 
 const DISPLAY_COLS: Array<{
   k: keyof RosterRow | 'age';
@@ -11,13 +12,13 @@ const DISPLAY_COLS: Array<{
   derived?: boolean;
   w?: string;
 }> = [
-    { k: 'firstName', t: 'First name' },
-    { k: 'lastName', t: 'Last name' },
+    { k: 'firstName', t: 'Student Name' },
+    // { k: 'lastName', t: 'Last name' },
     { k: 'dateOfBirth', t: 'Date of birth' },
     { k: 'age', t: 'Age', ro: true, derived: true },
     { k: 'yearJoined', t: 'Year Joined' },
-    { k: 'email', t: 'E-mail' },
-    { k: 'phone', t: 'Cell' },
+    // { k: 'email', t: 'E-mail' },
+    // { k: 'phone', t: 'Cell' },
     { k: 'school', t: 'School' },
     { k: 'country', t: 'Country' }
   ];
@@ -39,7 +40,7 @@ export function RegisterTable({
               {DISPLAY_COLS.map((c) => (
                 <Th key={c.k} style={c.w ? { minWidth: c.w } : undefined}>
                   {c.t}
-           
+
                 </Th>
               ))}
               <Th>Action</Th>
@@ -48,12 +49,15 @@ export function RegisterTable({
           <tbody>
             {rows.map((r) => (
               <Tr key={r.id}>
-                <Td>
-                  <Cell value={r.firstName} />
+                <Td className='flex items-center gap-2'>
+                  <Cell value={r.firstName+" "+r.lastName} />
+                  {r.parentalConsent ? 
+                  <CircleCheckBig size={16} color="green" scale={2} />
+                : undefined}
                 </Td>
-                <Td>
+                {/* <Td>
                   <Cell value={r.lastName} />
-                </Td>
+                </Td> */}
                 <Td>
                   <Cell value={r.dateOfBirth} />
                 </Td>
@@ -63,12 +67,12 @@ export function RegisterTable({
                 <Td>
                   <Cell value={r.yearJoined} />
                 </Td>
-                <Td>
+                {/* <Td>
                   <Cell value={r.email} />
                 </Td>
                 <Td>
                   <Cell value={r.phone} />
-                </Td>
+                </Td> */}
                 <Td>
                   <Cell value={r.school} />
                 </Td>

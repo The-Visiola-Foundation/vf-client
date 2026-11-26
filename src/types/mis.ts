@@ -92,6 +92,7 @@ export interface RosterRow {
   phone?: string | null;
   school?: string | null;
   country?: string | null;
+  parentalConsent?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -359,6 +360,7 @@ export interface RegisterData {
     phone: string | undefined;
     country: string;
     school: string | null;
+    parentalConsent: boolean | null;
   }[];
   total: number;
   page: number;
