@@ -99,7 +99,7 @@ export function Board({ data }: { data: BoardData }) {
       {/* Headline trend */}
       <div className="mt-3.5">
         <Card>
-          <Heading>First-time students by year</Heading>
+          <SectionHeading>First-time students by year</SectionHeading>
           <BarChart
             rows={studentCountByYear ?? []}
             labelKey="year"
@@ -111,12 +111,12 @@ export function Board({ data }: { data: BoardData }) {
         </Card>
       </div>
 
-      <SectionHeading>Breakdown by programme</SectionHeading>
+      <Heading>Breakdown by programme</Heading>
 
       <div className="space-y-3.5">
         {/* ASCG */}
         <Card>
-          <Heading>Afterschool STEM Clubs for Girls (ASCG)</Heading>
+          <SectionHeading>Afterschool STEM Clubs for Girls (ASCG)</SectionHeading>
           <Grid4>
             <Kpi
               label="ASCG · unique students"
@@ -154,7 +154,7 @@ export function Board({ data }: { data: BoardData }) {
 
           {hasAcademic && (
             <div className="mt-4">
-              <Heading>Change in GPA, term 1 to term 3 · {academic.year} cohort</Heading>
+              <SectionHeading>Change in GPA, term 1 to term 3 · {academic.year} cohort</SectionHeading>
               <StackBar
                 total={studentsAnalysed}
                 segments={[
@@ -169,7 +169,7 @@ export function Board({ data }: { data: BoardData }) {
 
         {/* Coding Boot Camp */}
         <Card>
-          <Heading>Coding Boot Camp (CBC)</Heading>
+          <SectionHeading>Coding Boot Camp (CBC)</SectionHeading>
           <Grid2>
             <Kpi
               label="Coding Boot Camp · unique students"
@@ -188,7 +188,7 @@ export function Board({ data }: { data: BoardData }) {
 
         {/* STEM Camps */}
         <Card>
-          <Heading>STEM Camps</Heading>
+          <SectionHeading>STEM Camps</SectionHeading>
           <Grid4>
             <Kpi
               label="Unique students"
@@ -235,11 +235,11 @@ export function Board({ data }: { data: BoardData }) {
         </Card>
       </div>
 
-      <SectionHeading>Cost per outcome</SectionHeading>
+      {/* <SectionHeading>Cost per outcome</SectionHeading>
       <EmptyState title="Cost per outcome not available yet">
         Annual spend per programme is needed to calculate cost per student and cost per
         improved student.
-      </EmptyState>
+      </EmptyState> */}
     </>
   );
 }
