@@ -203,8 +203,14 @@ export async function restoreSession(): Promise<AuthUser | null> {
     if (!normalized.email) return null;
     writeStoredSession(normalized);
     return normalized;
-  } catch {
-    clearAuthTokens();
+  } catch (err) {
+    // A 401 here means the access token expired and the refresh path inside
+    // executeRequest already failed (refresh token rejected or missing).
+    // Tokens were already cleared + listeners notified by that path.
+    // Network / 5xx errors: keep tokens intact — the user can retry later.
+    if (err instanceof ApiError && err.status === 401) {
+      clearAuthTokens();
+    }
     writeStoredSession(null);
     return null;
   }

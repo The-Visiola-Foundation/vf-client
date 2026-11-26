@@ -204,4 +204,197 @@ describe('client.ts', () => {
       unsubscribe();
     });
   });
+
+  describe('Silent token refresh', () => {
+    it('expired access token → one refresh → original request retried and succeeds', async () => {
+      setAuthTokens('expired-access-token', 'valid-refresh-token');
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        const url = String(input);
+        if (url.includes('/auth/refresh')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              statusCode: 200,
+              data: {
+                accessToken: 'fresh-access-token',
+                refreshToken: 'fresh-refresh-token',
+              },
+            }),
+          } as Response;
+        }
+
+        const authHeader = (init?.headers as Record<string, string>)?.Authorization;
+
+        if (authHeader === 'Bearer fresh-access-token') {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ statusCode: 200, data: { success: true } }),
+          } as Response;
+        }
+
+        return {
+          ok: false,
+          status: 401,
+          json: async () => ({ statusCode: 401, message: 'Expired token' }),
+        } as Response;
+      });
+
+      const res = await api.get<{ success: boolean }>('/stats/overview');
+
+      expect(res.success).toBe(true);
+      expect(getAuthToken()).toBe('fresh-access-token');
+      expect(getRefreshToken()).toBe('fresh-refresh-token');
+    });
+
+    it('refresh fails with network error → tokens kept, user not signed out', async () => {
+      setAuthTokens('expired-access-token', 'valid-refresh-token');
+
+      const unauthorizedSpy = vi.fn();
+      const unsubscribe = onUnauthorized(unauthorizedSpy);
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+        throw new TypeError('Network error');
+      });
+
+      await expect(api.get('/stats/overview')).rejects.toThrow(ApiError);
+
+      expect(getAuthToken()).toBe('expired-access-token');
+      expect(getRefreshToken()).toBe('valid-refresh-token');
+      expect(unauthorizedSpy).not.toHaveBeenCalled();
+
+      unsubscribe();
+    });
+
+    it('refresh fails with 500 → tokens kept, user not signed out', async () => {
+      setAuthTokens('expired-access-token', 'valid-refresh-token');
+
+      const unauthorizedSpy = vi.fn();
+      const unsubscribe = onUnauthorized(unauthorizedSpy);
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes('/auth/refresh')) {
+          return {
+            ok: false,
+            status: 500,
+            json: async () => ({ statusCode: 500, message: 'Internal server error' }),
+          } as Response;
+        }
+        return {
+          ok: false,
+          status: 401,
+          json: async () => ({ statusCode: 401, message: 'Expired' }),
+        } as Response;
+      });
+
+      await expect(api.get('/stats/overview')).rejects.toThrow(ApiError);
+
+      expect(getAuthToken()).toBe('expired-access-token');
+      expect(getRefreshToken()).toBe('valid-refresh-token');
+      expect(unauthorizedSpy).not.toHaveBeenCalled();
+
+      unsubscribe();
+    });
+
+    it('after a refresh, a second refresh uses the NEW refresh token', async () => {
+      setAuthTokens('expired-access-token', 'refresh-token-v1');
+
+      const refreshBodies: string[] = [];
+      let nonRefreshCalls = 0;
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        const url = String(input);
+        if (url.includes('/auth/refresh')) {
+          if (init?.body && typeof init.body === 'string') refreshBodies.push(init.body);
+          const nextAccess =
+            refreshBodies.length === 1 ? 'fresh-access-token-1' : 'fresh-access-token-2';
+          const nextRefresh =
+            refreshBodies.length === 1 ? 'refresh-token-v2' : 'refresh-token-v3';
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              statusCode: 200,
+              data: {
+                accessToken: nextAccess,
+                refreshToken: nextRefresh,
+              },
+            }),
+          } as Response;
+        }
+
+        nonRefreshCalls++;
+
+        // Call 1: expired-access-token → 401 → triggers first refresh
+        // Call 2: retry with fresh-access-token-1 → 200
+        // Call 3: fresh-access-token-1 again → 401 → triggers second refresh
+        // Call 4: retry with fresh-access-token-2 → 200
+        if (nonRefreshCalls === 1 || nonRefreshCalls === 3) {
+          return {
+            ok: false,
+            status: 401,
+            json: async () => ({ statusCode: 401, message: 'Expired token' }),
+          } as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ statusCode: 200, data: { success: true } }),
+        } as Response;
+      });
+
+      // First request: refresh uses refresh-token-v1, gets fresh-access-token-1 + refresh-token-v2
+      await api.get<{ success: boolean }>('/stats/overview');
+      expect(getAuthToken()).toBe('fresh-access-token-1');
+      expect(getRefreshToken()).toBe('refresh-token-v2');
+      expect(refreshBodies[0]).toContain('refresh-token-v1');
+
+      // Second request: token-1 expires, refresh uses refresh-token-v2
+      await api.get<{ success: boolean }>('/stats/overview');
+      expect(getAuthToken()).toBe('fresh-access-token-2');
+      expect(getRefreshToken()).toBe('refresh-token-v3');
+      expect(refreshBodies[1]).toContain('refresh-token-v2');
+    });
+
+    it('401 on retried request does not trigger a second refresh', async () => {
+      setAuthTokens('expired-access-token', 'valid-refresh-token');
+
+      let refreshCount = 0;
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes('/auth/refresh')) {
+          refreshCount++;
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              statusCode: 200,
+              data: {
+                accessToken: 'fresh-access-token',
+                refreshToken: 'fresh-refresh-token',
+              },
+            }),
+          } as Response;
+        }
+
+        // Always return 401, even with the fresh token
+        return {
+          ok: false,
+          status: 401,
+          json: async () => ({ statusCode: 401, message: 'Still expired' }),
+        } as Response;
+      });
+
+      await expect(api.get<{ success: boolean }>('/stats/overview')).rejects.toThrow(ApiError);
+
+      // Only one refresh call — no refresh loop on the retried request
+      expect(refreshCount).toBe(1);
+      expect(getAuthToken()).toBeNull();
+      expect(getRefreshToken()).toBeNull();
+    });
+  });
 });

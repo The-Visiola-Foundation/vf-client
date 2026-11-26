@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import type { RefreshTokenDto, RefreshResponse } from '../../types/backend';
 
 /**
  * Token store. Memory-first, mirrored to sessionStorage so a refresh keeps the
@@ -109,7 +110,7 @@ function extractErrorMessage(body: unknown, fallback: string): string {
  */
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (refreshPromise) {
     return refreshPromise;
   }
@@ -122,37 +123,57 @@ async function refreshAccessToken(): Promise<string | null> {
       return null;
     }
 
+    const body: RefreshTokenDto = { refreshToken: currentRefreshToken };
+    let res: Response;
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      res = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refreshToken: currentRefreshToken }),
+        body: JSON.stringify(body),
       });
+    } catch (netErr) {
+      // Network error: do not clear tokens, do not sign out.
+      // Fail the request so the caller can retry later.
+      refreshPromise = null;
+      throw netErr;
+    }
 
-      if (!res.ok) {
+    try {
+      // Only a 401/403 rejection of the refresh token signs the user out.
+      // A 5xx or other error keeps tokens intact and throws for the caller.
+      if (res.status === 401 || res.status === 403) {
         clearAuthTokens();
         notifyUnauthorized();
         return null;
       }
 
-      const body = await res.json();
-      const payload =
-        body && typeof body === 'object' && 'data' in body
-          ? (body as { data: Record<string, unknown> }).data
-          : (body as Record<string, unknown>);
+      if (!res.ok) {
+        throw new ApiError(
+          `Token refresh failed (HTTP ${res.status})`,
+          res.status,
+          undefined,
+          'refresh_failed',
+        );
+      }
+
+      const raw = await res.json();
+      const payload: RefreshResponse =
+        raw && typeof raw === 'object' && 'data' in raw
+          ? (raw as { data: RefreshResponse }).data
+          : (raw as RefreshResponse);
 
       const nextAccess =
-        typeof payload?.accessToken === 'string'
+        typeof payload.accessToken === 'string'
           ? payload.accessToken
-          : typeof payload?.token === 'string'
-            ? payload.token
+          : typeof (payload as unknown as Record<string, unknown>).token === 'string'
+            ? ((payload as unknown as Record<string, unknown>).token as string)
             : null;
 
       const nextRefresh =
-        typeof payload?.refreshToken === 'string'
+        typeof payload.refreshToken === 'string'
           ? payload.refreshToken
           : currentRefreshToken;
 
@@ -164,10 +185,6 @@ async function refreshAccessToken(): Promise<string | null> {
 
       setAuthTokens(nextAccess, nextRefresh);
       return nextAccess;
-    } catch {
-      clearAuthTokens();
-      notifyUnauthorized();
-      return null;
     } finally {
       refreshPromise = null;
     }
@@ -243,7 +260,8 @@ async function executeRequest<T>(
     res.status === 401 &&
     !isRetry &&
     !path.startsWith('/auth/login') &&
-    !path.startsWith('/auth/refresh')
+    !path.startsWith('/auth/refresh') &&
+    !path.startsWith('/auth/logout')
   ) {
     const nextToken = await refreshAccessToken();
     if (nextToken) {

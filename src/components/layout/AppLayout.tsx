@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { MisData } from '../../types/mis';
 import { canAccess, firstAllowedPage, isPage, roleLabel } from '../../lib/access';
 import { SKIP_AUTH } from '../../lib/api/config';
+import { onUnauthorized } from '../../lib/api/client';
 import { useMisData } from '../../queries/useMisData';
 import {
   useAscgAcademic,
@@ -321,6 +323,18 @@ export function AppLayout() {
   const logout = useLogout();
   const navigate = useNavigate();
   const { page: pageParam, studentId } = useParams();
+
+  // If the access token expires and the refresh token is rejected, the API
+  // client notifies unauthorized listeners. Sign the user out so RequireAuth
+  // redirects to /login (preserving the original page in location.state.from).
+  useEffect(() => {
+    const unsubscribe = onUnauthorized(() => {
+      logout.mutate(undefined, {
+        onSettled: () => navigate('/login', { replace: true }),
+      });
+    });
+    return unsubscribe;
+  }, [logout, navigate]);
 
   const user =
     session.data ??
